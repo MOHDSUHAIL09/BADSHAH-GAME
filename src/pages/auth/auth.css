@@ -1,0 +1,146 @@
+.mediic-appoinment {
+  position: relative;
+  background-image: url(https://i.pinimg.com/1200x/68/08/ed/6808ed0932199b8ec7c38da783b789e3.jpg);
+  background-color: #1a56ce98;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+/* Overlay */
+.mediic-appoinment::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.214); 
+  z-index: 1;
+}
+           
+
+.auth-form {
+   position: relative;
+  z-index: 2;
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 5px;
+  width: 100%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) ;
+
+  position: relative;
+  background-image: url(https://i.pinimg.com/1200x/37/92/f0/3792f0ee016d67f1b4269cf8baeaa787.jpg);
+  background-size: cover;
+  background-repeat: no-repeat;
+  justify-content: center;
+}
+
+.signup-side-image {
+  height: 600px;
+}
+
+
+.form-box input::placeholder {
+  font-size: 17px;
+  color: #002570;
+}
+
+.form-box input {
+  width: 100%;
+  height: 50px;
+  margin-bottom: 10px;
+  padding: 0 20px;
+  outline: 0;
+  display: inline-block;
+  border-radius: 12px;
+  background-color: rgba(255, 255, 255, 0);
+  border: 1px solid rgba(0, 37, 112, 0.5);
+  font-weight: 500;
+  font-family: "DM Sans";
+  font-size: 18px;
+}
+
+/* Left column image styling */
+.signup-left-col {
+  display: flex;
+}
+
+.laboix-btn {
+  display: inline-block;
+  vertical-align: middle;
+  -webkit-appearance: none;
+  border: none;
+  outline: none !important;
+  color: #fff;
+  padding: 19px 41.5px;
+  transition: 500ms;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 112.5%;
+  background-color: #0e57ccc8;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+  z-index: 1;
+  width: 100%;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.laboix-btn::before {
+  content: "";
+  height: 0px;
+  width: 0px;
+  background-color: var(--laboix-base, #021936);
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transition: all 0.5s ease-in-out;
+  z-index: -1;
+}
+
+h4 {
+  font-size: 22px !important;
+  font-weight: 900 !important;
+}
+
+.Sign-text {
+  font-size: 15px !important;
+  font-weight: 800 !important;
+  color: gray;
+}
+
+.laboix-btn:hover {
+  color: #fff;
+}
+
+.laboix-btn:hover::before {
+  height: 400px;
+  width: 200%;
+  top: -70%;
+  left: -50%;
+}
+
+.text-white {
+  font-size: 45px;
+  font-weight: 900;
+}
+
+@media (max-width: 992px) {
+  .text-white {
+  font-size: 25px;
+  margin-top: 30px;
+}
+  
+}
+
