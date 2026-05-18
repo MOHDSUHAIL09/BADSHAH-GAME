@@ -1,6 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
 import Dashboard from '../pages/dashboard/Dashboard';
-import '../assets/main.css'
 
 function DashboardLayout() {
   return (
