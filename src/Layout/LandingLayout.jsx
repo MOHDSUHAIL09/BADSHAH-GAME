@@ -29,9 +29,9 @@
 
 
 import { useLocation, Routes, Route } from 'react-router-dom';
-import Signup from '../Pages/auth/Signup';
-import Login from '../Pages/auth/Login';
-import ForgotPassword from '../Pages/auth/ForgotPassword';
+import Signup from '../pages/auth/Signup';
+import Login from '../pages/auth/Login';
+import ForgotPassword from '../pages/auth/ForgotPassword';
 import Home from '../components/Home';
 import Header from '../components/common/Header';
 
