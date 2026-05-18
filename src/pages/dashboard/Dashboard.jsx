@@ -311,7 +311,7 @@ const Dashboard = () => {
                 </div>
                 <div className="wallet-info">
                   <span>WALLET BALANCE</span>
-                  <h2>₹{(userData?.currentamt || 0).toLocaleString()}</h2>
+                  <h2>₹{(userData?.currentamt || 0)}</h2>
                 </div>
               </div>
             </div>
@@ -467,7 +467,6 @@ const Dashboard = () => {
                   <div className="countdown-timer">{last10TimeLeft}</div>
                   <p>Betting Closed! Result coming soon...</p>
                 </div>
-                <button className="modal-close" onClick={() => setShowLast10Modal(false)}>Close</button>
               </div>
             </div>
           )}
@@ -477,20 +476,16 @@ const Dashboard = () => {
               <div className={`modal-container ${modalData.isWin ? 'modal-win' : 'modal-lose'}`}>
                 <div className="modal-header-custom">
                   {modalData.isWin ? <i className="bi bi-trophy-fill"></i> : <i className="bi bi-emoji-frown"></i>}
-                  <h3>{modalData.isWin ? 'YOU WIN!' : 'GAME OVER'}</h3>
+                  <h3>{modalData.isWin ? 'YOU WIN!' : 'YOU Lose'}</h3>
                 </div>
                 <div className="modal-body-custom">
                   <div className="winner-emoji">{modalData.icon?.emoji}</div>
-                  <h4>{modalData.icon?.name}</h4>
+                  <h4 className='text01'>{modalData.icon?.name}</h4>
                   {modalData.isWin && (
-                    <div className="win-amount">+ ₹{modalData.amount}</div>
+                    <div className=" win-amount">+ ₹{modalData.amount}</div>
                   )}
-                  <p>{modalData.isWin ? '9x Congratulations! You won big!' : 'Better luck next time!'}</p>
+                  <p className='text01'>{modalData.isWin ? '9x Congratulations! You won big!' : 'Better luck next time!'}</p>
                 </div>
-                <button className="modal-close" onClick={() => {
-                  setShowModal(false);
-                  resetAfterResult();
-                }}>Play Next Round</button>
               </div>
             </div>
           )}
