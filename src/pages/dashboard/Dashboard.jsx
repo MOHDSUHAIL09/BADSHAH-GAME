@@ -23,6 +23,7 @@ const Dashboard = () => {
   const [winnerIndex, setWinnerIndex] = useState(null);
   const [winningAmount, setWinningAmount] = useState(0);
   const [resultHistory, setResultHistory] = useState([]);
+  const [gameResults, setGameResults] = useState([]); // Store API results
   
   // UI States
   const [toastMessage, setToastMessage] = useState('');
@@ -38,6 +39,7 @@ const Dashboard = () => {
   const [isBettingLocked, setIsBettingLocked] = useState(false);
   const [gameId, setGameId] = useState('');
   const [isPlacingBet, setIsPlacingBet] = useState(false);
+  const [currentRoundGameId, setCurrentRoundGameId] = useState('');
 
   // ==================== REFS ====================
   const last10ModalShownRef = useRef(false);
@@ -83,59 +85,158 @@ const Dashboard = () => {
     const secs = seconds % 60;
     return secs.toString().padStart(2, '0');
   };
-
-  const generateGameId = () => {
-    const date = new Date();
-    const year = date.getFullYear().toString().slice(-2);
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    const seconds = date.getSeconds().toString().padStart(2, '0');
-    return `${year}${month}${day}${hours}${minutes}${seconds}`;
-  };
-
-  // ==================== API CALL FUNCTION - SINGLE CALL WITH ARRAYS ====================
-  const addBidToAPI = async (pid, totalDebitAmount, betNumbersArray, perbitAmountsArray, game, gameType, gameId, accType) => {
+  // ==================== API CALL FUNCTION - ADD BID ====================
+  const addBidToAPI = async (pid, debitAmount, betNumber, perbitAmount, game, gameType, gameId, accType) => {
     try {
       const token = getAuthToken();
 
-      // ✅ Request body with arrays
       const requestBody = {
         pid: Number(pid),
-        debit: Number(totalDebitAmount),     // Total sum of all bets
-        bet: betNumbersArray,                 // Array of bet numbers ["1", "2", "11"]
-        perbit: perbitAmountsArray,          // Array of amounts ["10", "10", "10"]
+        debit: Number(debitAmount),
+        bet: String(betNumber),
+        perbit: String(perbitAmount),
         game: String(game),
         gameType: String(gameType),
         gameId: String(gameId),
         accType: String(accType)
       };
 
-      console.log("========== ADD BID API CALL (SINGLE REQUEST WITH ARRAYS) ==========");
+      console.log("========== ADD BID API CALL ==========");
       console.log("Request Body:", JSON.stringify(requestBody, null, 2));
-      console.log("==========================================================");
 
       const response = await apiClient.post('/Trading/AddBid', requestBody, {
         headers: {
-          'accept': '*/*',
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         }
       });
 
-      console.log("✅ API Response:", response.data);
+      console.log("✅ AddBid Response:", response.data);
       return response.data;
     } catch (error) {
       console.error('❌ AddBid API Error:', error);
       if (error.response?.data) {
-        console.error('Error Details:', error.response.data);
+        console.error('Error Response Data:', JSON.stringify(error.response.data, null, 2));
       }
       throw error;
     }
   };
 
-  // ==================== BET PLACEMENT FUNCTION - SINGLE API CALL FOR ALL BETS ====================
+  // ==================== API CALL FUNCTION - GET GAME RESULTS ====================
+  const fetchGameResults = async () => {
+    try {
+      const token = getAuthToken();
+      
+      const response = await apiClient.get('/Trading/game-result', {
+        params: {
+          PageIndex: 1,
+          PageSize: 5
+        },
+        headers: {
+          'Accept': '*/*',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      console.log("========== GAME RESULTS API ==========");
+      console.log("Response:", response.data);
+      
+      if (response.data && response.data.success === true) {
+        const results = response.data.data?.data || [];
+        setGameResults(results);
+        
+        // Update result history for display
+        const history = results.map(result => {
+          // Find matching item by betnumber
+          const matchedItem = items.find(item => item.emojiCode === result.betnumber);
+          return {
+            name: matchedItem ? matchedItem.name : result.betnumber,
+            emoji: matchedItem ? matchedItem.emoji : '🎲',
+            betnumber: result.betnumber,
+            gameid: result.gameid,
+            edate: result.edate
+          };
+        });
+        
+        setResultHistory(history);
+        console.log("Updated Result History:", history);
+      }
+    } catch (error) {
+      console.error('❌ Fetch Game Results Error:', error);
+      if (error.response?.data) {
+        console.error('Error Details:', error.response.data);
+      }
+    }
+  };
+
+  // ==================== CHECK WINNING RESULT ====================
+  const checkWinningResult = async () => {
+    try {
+      const token = getAuthToken();
+      
+      const response = await apiClient.get('/Trading/game-result', {
+        params: {
+          PageIndex: 1,
+          PageSize: 5
+        },
+        headers: {
+          'Accept': '*/*',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.data && response.data.success === true) {
+        const results = response.data.data?.data || [];
+        
+        // Find the latest result for current gameId or latest result
+        const latestResult = results[0];
+        
+        if (latestResult && latestResult.betnumber) {
+          const winningNumber = latestResult.betnumber;
+          const winningIndex = items.findIndex(item => item.emojiCode === winningNumber);
+          
+          if (winningIndex !== -1) {
+            const winningIcon = items[winningIndex];
+            const winnerBet = betAmounts[winningIndex];
+            const winAmount = winnerBet * 9;
+            const isWin = winnerBet > 0;
+            
+            setWinnerIndex(winningIndex);
+            setCurrentIcon(winningIcon);
+            
+            setModalData({
+              isWin: isWin,
+              amount: winAmount,
+              icon: winningIcon
+            });
+            setShowModal(true);
+            
+            // Update result history
+            await fetchGameResults();
+            
+            setTimeout(() => {
+              setWinnerIndex(null);
+            }, 3000);
+            
+            if (modalTimeoutRef.current) clearTimeout(modalTimeoutRef.current);
+            modalTimeoutRef.current = setTimeout(() => {
+              setShowModal(false);
+              resetAfterResult();
+            }, 3000);
+            
+            return { isWin, winAmount, winningIcon };
+          }
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error('Error checking result:', error);
+      return null;
+    }
+  };
+
+  // ==================== BET PLACEMENT FUNCTION ====================
   const handlePlaceBet = async () => {
     if (isBettingLocked) {
       showToastMessage('⛔ Betting closed! Last 10 seconds remaining!', false);
@@ -158,31 +259,25 @@ const Dashboard = () => {
       return;
     }
 
-    // ✅ Calculate TOTAL sum of all selected bets
     const totalPreviewAmount = previewAmounts.reduce((sum, amount) => sum + amount, 0);
     const currentWallet = userData?.currentamt || 0;
 
-    // ✅ Prepare arrays for API
-    const betNumbersArray = [];      // Array of emoji codes
-    const perbitAmountsArray = [];   // Array of amounts
-    const selectedIndices = [];       // Array of selected card indices
-
-    // Collect all selected bets
+    const selectedBets = [];
     for (let i = 0; i < previewAmounts.length; i++) {
       if (previewAmounts[i] > 0) {
-        betNumbersArray.push(items[i].emojiCode);
-        perbitAmountsArray.push(previewAmounts[i].toString());
-        selectedIndices.push(i);
+        selectedBets.push({
+          index: i,
+          amount: previewAmounts[i],
+          betNumber: items[i].emojiCode,
+          name: items[i].name
+        });
       }
     }
 
     console.log("========== PLACE BET SUMMARY ==========");
-    console.log("Selected Cards:", selectedIndices.length);
-    console.log("Bet Numbers Array:", betNumbersArray);
-    console.log("Perbit Amounts Array:", perbitAmountsArray);
-    console.log("Total Debit Amount (Sum):", totalPreviewAmount);
+    console.log("Selected Cards:", selectedBets.length);
+    console.log("Total Amount:", totalPreviewAmount);
     console.log("Wallet Balance:", currentWallet);
-    console.log("======================================");
 
     if (currentWallet < totalPreviewAmount) {
       showToastMessage(`⚠️ Insufficient balance! Need ₹${totalPreviewAmount} but have ₹${currentWallet}`, false);
@@ -190,47 +285,62 @@ const Dashboard = () => {
     }
 
     setIsPlacingBet(true);
+    let successCount = 0;
+    let failCount = 0;
+    let totalDeduction = 0;
+    const newBetAmounts = [...betAmounts];
+    const currentGameIdForRound = generateGameId();
+    setCurrentRoundGameId(currentGameIdForRound);
 
-    try {
-      // ✅ SINGLE API CALL - All bets in one request with arrays
-      const result = await addBidToAPI(
-        Number(userData?.pid) || Number(userData?.id) || 1,
-        Number(totalPreviewAmount),        // ✅ Total sum of all bets
-        betNumbersArray,                   // ✅ Array of bet numbers ["1", "2", "11"]
-        perbitAmountsArray,                // ✅ Array of amounts ["10", "10", "10"]
-        "Number",
-        "A",
-        String(gameId || generateGameId()),
-        "playgame"
-      );
-
-      // Check if API call was successful
-      if (result && result.success === true) {
-        // Update local state
-        const newBetAmounts = [...betAmounts];
-        let totalDeduction = 0;
+    for (let i = 0; i < selectedBets.length; i++) {
+      const bet = selectedBets[i];
+      
+      try {
+        console.log(`\n--- Placing bet on ${bet.name} ---`);
         
-        for (let i = 0; i < selectedIndices.length; i++) {
-          const idx = selectedIndices[i];
-          const amount = previewAmounts[idx];
-          newBetAmounts[idx] += amount;
-          totalDeduction += amount;
+        const result = await addBidToAPI(
+          Number(userData?.pid) || Number(userData?.id) || 1,
+          Number(bet.amount),
+          String(bet.betNumber),
+          String(bet.amount),
+          "Number",
+          "A",
+          String(currentGameIdForRound),
+          "playgame"
+        );
+
+        if (result && result.success === true) {
+          successCount++;
+          newBetAmounts[bet.index] += bet.amount;
+          totalDeduction += bet.amount;
+          console.log(`✅ Success on ${bet.name}`);
+        } else {
+          failCount++;
+          console.log(`❌ Failed on ${bet.name}:`, result?.message || 'Unknown error');
         }
-        
-        setBetAmounts(newBetAmounts);
-        setTotalBet(totalBet + totalDeduction);
-        setPreviewAmounts(Array(12).fill(0));
-        
-        // Refresh user data to update wallet balance
-        setTimeout(() => refreshData(), 1000);
-        
-        showToastMessage(`✅ ${selectedIndices.length} bets placed successfully! Total: ₹${totalDeduction}`, true);
-      } else {
-        showToastMessage(`❌ Failed to place bets: ${result?.message || 'Unknown error'}`, false);
+      } catch (error) {
+        failCount++;
+        console.error(`❌ Error on ${bet.name}:`, error);
       }
-    } catch (error) {
-      console.error("Error placing bets:", error);
-      showToastMessage('❌ API Error! Failed to place bets.', false);
+      
+      if (i < selectedBets.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+
+    console.log(`\n✅ Success: ${successCount}, ❌ Failed: ${failCount}, 💰 Total: ₹${totalDeduction}`);
+
+    if (successCount > 0) {
+      setBetAmounts(newBetAmounts);
+      setTotalBet(totalBet + totalDeduction);
+      setPreviewAmounts(Array(12).fill(0));
+      setTimeout(() => refreshData(), 1000);
+      showToastMessage(`✅ ${successCount} bets placed! Total: ₹${totalDeduction}`, true);
+      if (failCount > 0) {
+        showToastMessage(`⚠️ ${failCount} bets failed. Please try again!`, false);
+      }
+    } else {
+      showToastMessage('❌ Failed to place bets. Please try again!', false);
     }
 
     setIsPlacingBet(false);
@@ -293,47 +403,51 @@ const Dashboard = () => {
     }, 1000);
   };
 
-  const declareResult = () => {
+  const declareResult = async () => {
     if (isResultDeclaredRef.current) return;
     isResultDeclaredRef.current = true;
-
-    const randomWinner = Math.floor(Math.random() * items.length);
-    const winningIcon = items[randomWinner];
-
-    setCurrentIcon(winningIcon);
-    setWinnerIndex(randomWinner);
-
-    const winnerBet = betAmounts[randomWinner];
-    const winAmount = winnerBet * 9;
-    const isWin = winnerBet > 0;
-
-    setModalData({
-      isWin: isWin,
-      amount: winAmount,
-      icon: winningIcon
-    });
-    setShowModal(true);
-
-    setResultHistory(prev => {
-      const newHistory = [{
-        ...winningIcon,
-        roundTime: new Date().toLocaleTimeString(),
+    
+    // Fetch real result from API
+    const result = await checkWinningResult();
+    
+    if (!result) {
+      // Fallback to random if API fails
+      const randomWinner = Math.floor(Math.random() * items.length);
+      const winningIcon = items[randomWinner];
+      const winnerBet = betAmounts[randomWinner];
+      const winAmount = winnerBet * 9;
+      const isWin = winnerBet > 0;
+      
+      setModalData({
         isWin: isWin,
-        winAmount: winAmount
-      }, ...prev];
-      return newHistory.slice(0, 5);
-    });
-
-    setTimeout(() => {
-      setWinnerIndex(null);
-    }, 3000);
-
-    if (modalTimeoutRef.current) clearTimeout(modalTimeoutRef.current);
-    modalTimeoutRef.current = setTimeout(() => {
-      setShowModal(false);
-      resetAfterResult();
-    }, 3000);
+        amount: winAmount,
+        icon: winningIcon
+      });
+      setShowModal(true);
+      
+      setTimeout(() => {
+        setWinnerIndex(null);
+      }, 3000);
+      
+      if (modalTimeoutRef.current) clearTimeout(modalTimeoutRef.current);
+      modalTimeoutRef.current = setTimeout(() => {
+        setShowModal(false);
+        resetAfterResult();
+      }, 3000);
+    }
   };
+
+  // ==================== INITIALIZE RESULTS ON LOAD ====================
+  useEffect(() => {
+    fetchGameResults();
+    
+    // Refresh results every 30 seconds
+    const interval = setInterval(() => {
+      fetchGameResults();
+    }, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
 
   // ==================== TIMER INITIALIZATION ====================
   useEffect(() => {
