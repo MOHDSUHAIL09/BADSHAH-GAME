@@ -1,0 +1,287 @@
+/* Withdraw Page Styles */
+
+/* Main Card */
+.withdraw-card {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 215, 0, 0.25);
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.08);
+}
+
+/* Header Styles */
+.withdraw-header h3 {
+  color: #ffd700;
+  font-weight: bold;
+  margin-bottom: 0;
+}
+
+.withdraw-header p {
+  color: rgba(255, 255, 255, 0.75);
+  margin-bottom: 0;
+}
+
+/* Card Styles (Balance Cards) */
+.balance-card {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  padding: 24px;
+  height: 100%;
+}
+
+.balance-card .card-label {
+  color: rgba(255, 255, 255, 0.75);
+  display: block;
+  margin-bottom: 8px;
+}
+
+.balance-card .payoutable-amount {
+  color: #ffd700;
+  font-weight: bold;
+  margin-bottom: 0;
+}
+
+.balance-card .withdrawal-amount {
+  color: #00ffb3;
+  font-weight: bold;
+  margin-bottom: 0;
+}
+
+/* Form Label */
+.form-label {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+/* Input Fields */
+.custom-input,
+.custom-select {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 215, 0, 0.4) !important;
+  color: #fff !important;
+  border-radius: 14px;
+  height: 58px;
+  font-size: 16px;
+}
+
+.custom-input:focus,
+.custom-select:focus {
+  border-color: #ffd700 !important;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+  outline: none;
+}
+
+.custom-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Mobile Input with Send Button */
+.mobile-input-wrapper {
+  position: relative;
+}
+
+.mobile-input-wrapper .custom-input {
+  padding-right: 120px;
+}
+
+.send-otp-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: linear-gradient(135deg, #054310, #088f2e);
+  border: none;
+  border-radius: 10px;
+  padding: 8px 16px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.3s ease;
+}
+
+.send-otp-btn:hover:not(:disabled) {
+  transform: translateY(-50%) scale(1.02);
+  box-shadow: 0 5px 15px rgb(8, 72, 0);
+  color: #000000;
+}
+
+.send-otp-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Info Note */
+.info-note {
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  margin-top: 30px;
+}
+
+.info-note .warning-icon {
+  color: #ffd700;
+  margin-right: 8px;
+}
+
+.info-note .info-text {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 13px;
+}
+
+/* Buttons */
+.withdraw-now-btn {
+  background: linear-gradient(135deg, #ffd700, #ff9500);
+  border: none;
+  border-radius: 16px;
+  height: 60px;
+  font-size: 18px;
+  font-weight: bold;
+  color: #000;
+  box-shadow: 0 10px 25px rgba(255, 215, 0, 0.25);
+  transition: all 0.3s ease;
+  width: 100%;
+}
+
+.withdraw-now-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 30px rgba(255, 215, 0, 0.35);
+}
+
+/* OTP Section */
+.otp-section {
+  background: #0f172a;
+  border-radius: 18px;
+  border: 1px solid rgba(0, 255, 179, 0.2);
+  padding: 24px;
+}
+
+.otp-label {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.otp-input {
+  background: #111827;
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  color: #fff;
+  border-radius: 14px;
+  text-align: center;
+  font-size: 28px;
+  letter-spacing: 12px;
+  height: 65px;
+  font-weight: bold;
+}
+
+.otp-input:focus {
+  border-color: #ffd700;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+  outline: none;
+}
+
+.otp-hint {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 12px;
+  margin-top: 8px;
+  display: block;
+}
+
+/* Verify Button */
+.verify-btn {
+  background: linear-gradient(135deg, #054310, #088f2e);
+  border: none;
+  border-radius: 16px;
+  height: 60px;
+  font-size: 18px;
+  font-weight: bold;
+  color: #fff;
+  box-shadow: 0 10px 25px rgba(0, 255, 179, 0.2);
+  transition: all 0.3s ease;
+  width: 100%;
+  margin-top: 24px;
+}
+
+.verify-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 30px rgb(1, 62, 10);
+  color: #000;
+}
+
+.verify-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .withdraw-card {
+    padding: 20px;
+  }
+  
+  .balance-card {
+    padding: 16px;
+  }
+  
+  .balance-card h2 {
+    font-size: 24px;
+  }
+  
+  .otp-input {
+    font-size: 20px;
+    letter-spacing: 6px;
+    height: 55px;
+  }
+  
+  .send-otp-btn {
+    padding: 6px 12px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 576px) {
+  .withdraw-card {
+    padding: 16px;
+  }
+  
+  .custom-input,
+  .custom-select {
+    height: 50px;
+  }
+  
+  .withdraw-now-btn,
+  .verify-btn {
+    height: 50px;
+    font-size: 16px;
+  }
+  
+  .otp-input {
+    font-size: 18px;
+    letter-spacing: 4px;
+    height: 50px;
+  }
+
+}
+
+.payout-history-btn{
+    background-color: rgba(255, 215, 0, 0.1) ;
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    border-radius: 30px;
+    color: #ffd700;
+    font-weight: bold ;
+    cursor: pointer;
+    padding: 5px 18px;
+}
+
+
+.custom-select:focus {
+  border-color: #ffd700;
+  outline: none;
+  box-shadow: 0 0 5px rgba(255,215,0,0.3);
+}

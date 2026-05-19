@@ -36,7 +36,13 @@ const Header = () => {
           >
             BADSHAH
           </div>
-          
+
+         {/* <ul>
+          <li>home</li>
+          <li>team</li>
+          <li></li>
+         </ul>
+           */}
           <div className="d-flex gap-2">
             {/* Notification Button - fixed style, no color change */}
             <button 

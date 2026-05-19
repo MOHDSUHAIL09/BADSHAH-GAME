@@ -11,8 +11,6 @@ export const UserProvider = ({ children }) => {
   });
 
   const [userData, setUserData] = useState(null);
-  const [stakeData, setStakeData] = useState(null);
-  const [payoutData, setPayoutData] = useState(null);
   const [loading, setLoading] = useState(false);
 
   // ================= LOAD FROM LOCALSTORAGE =================
@@ -30,31 +28,33 @@ export const UserProvider = ({ children }) => {
 
   // ================= Dashboard Fetch =================
   const fetchData = async () => {
+    setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      if (!user || !token) return;
+      if (!user || !token) {
+        setLoading(false);
+        return;
+      }
       
-      const regno = user.id || user.id;
-      if (!regno) return;
+      const regno = user?.RegNo || user?.regno || user?.id || localStorage.getItem("regno");
+      if (!regno) {
+        setLoading(false);
+        return;
+      }
 
-      const res = await apiClient.get(
-        `/Dashboard/dashboard/${regno}`,  
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      console.log("Dashboard-Api", res)
+      const res = await apiClient.get(`/Dashboard/dashboard/${regno}`);
+      console.log("Dashboard-Api", res);
       
       if (res.data.success) {
         const apiData = res.data.data;
         const newUserData = {
-          currentamt: apiData.currentamt,
+          currentamt: apiData.currentamt || 0,
+          currentAmount: apiData.currentAmount,
           gameid: apiData.gameid,
           seconds: apiData.seconds,
-          totbettingamt: apiData.totbettingamt,
-    
+          totbettingamt: apiData.totbettingamt || 0,
+          debit: apiData.debit,
+          regNo: regno,
         };
          
         setUserData(newUserData);
@@ -62,119 +62,13 @@ export const UserProvider = ({ children }) => {
       }
     } catch (error) {
       console.error("Dashboard Fetch Error:", error);
+    } finally {
+      setLoading(false);
     }
-  };
-
-  // ================= INVEST NOW (With Separate APIs & API Message Support) =================
-  const investNow = async (reciveId, investAmount) => {
-    console.log("=== INVEST NOW CALLED ===");
-    console.log("reciveId:", reciveId);
-    console.log("investAmount:", investAmount);
-    
-    if (!userData) {
-      return { success: false, message: "User data not loaded" };
-    }
-    
-    const amount = parseFloat(investAmount);
-    let updatedData;
-    let apiEndpoint;
-    let apiBody;
-    let apiMessage = "";
-    let isSuccess = false;
-    
-    const token = localStorage.getItem("token");
-    const regno = user?.Regno || user?.regno || localStorage.getItem("regno");
-    
-    // 🔥 SELF TRANSFER (Income → Deposit) - Use fund-transfer API
-    if (reciveId === userData?.me) {
-      console.log("💰 SELF TRANSFER - Using fund-transfer API");
-      
-      const oldTotalWallet = parseFloat(userData.totalWallet || 0);
-      const oldDeposit = parseFloat(userData.Depositfund || 0);
-      const newTotalWallet = oldTotalWallet - amount;
-      const newDepositfund = oldDeposit + amount;
-      
-      updatedData = {
-        ...userData,
-        totalWallet: newTotalWallet,
-        Depositfund: newDepositfund
-      };
-      
-      apiEndpoint = `/IncomePayout/fund-transfer`;
-      apiBody = {
-        regno: Number(regno),
-        reciveId: userData.me,  
-        amount: amount
-      };
-    } 
-    // 🔥 P2P TRANSFER (Deposit → Deposit) - Use deposit-to-deposit API
-    else {
-      console.log("💰 P2P TRANSFER - Using deposit-to-deposit API");
-      
-      const oldDeposit = parseFloat(userData.Depositfund || 0);
-      const newDepositfund = oldDeposit - amount;
-      
-      updatedData = {
-        ...userData,
-        Depositfund: newDepositfund
-      };
-      
-      apiEndpoint = `/IncomePayout/deposit-to-deposit`;
-      apiBody = {
-        regno: Number(regno),
-        reciveId: reciveId,
-        amount: amount
-      };
-    }
-    
-    // ✅ Update UI and localStorage IMMEDIATELY
-    setUserData(updatedData);
-    localStorage.setItem("userData", JSON.stringify(updatedData));
-    
-    // 🔥 Call API in background
-    try {
-      console.log("Calling API:", apiEndpoint);
-      console.log("Body:", apiBody);
-      
-      const response = await apiClient.post(
-        apiEndpoint,
-        apiBody,
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
-      
-      console.log("API Response:", response.data);
-      
-      // ✅ Extract message from API response
-      if (response.data.success) {
-        isSuccess = true;
-        apiMessage = response.data.message || `Transfer of ${amount} completed successfully!`;
-        console.log("✅ API Success - Database updated:", apiMessage);
-        
-        // Refresh from server to confirm
-        setTimeout(() => fetchData(), 500);
-      } else {
-        isSuccess = false;
-        apiMessage = response.data.message || "Transfer failed. Please try again.";
-        console.log("❌ API Failed:", apiMessage);
-      }
-    } catch (error) {
-      console.error("API Error:", error.response?.data || error);
-      isSuccess = false;
-      apiMessage = error.response?.data?.message || error.message || "Network error. Please check your connection.";
-    }
-    
-    // ✅ Return proper response with API message
-    return { 
-      success: isSuccess,
-      message: apiMessage,
-      amount: amount
-    };
   };
 
   // ================= REFRESH USER DATA =================
-  const refreshUserData = async () => {
+  const refreshUserData = () => {
     const savedData = localStorage.getItem("userData");
     if (savedData) {
       const parsed = JSON.parse(savedData);
@@ -188,7 +82,7 @@ export const UserProvider = ({ children }) => {
   const loginUser = (userData, token) => {
     localStorage.setItem("user", JSON.stringify(userData));
     localStorage.setItem("token", token);
-    localStorage.setItem("regno", userData.regno);
+    localStorage.setItem("regno", userData.regno || userData.RegNo);
     setUser(userData);
     setTimeout(() => fetchData(), 100);
   };
@@ -197,8 +91,6 @@ export const UserProvider = ({ children }) => {
   const logoutUser = () => {
     setUser(null);
     setUserData(null);
-    setStakeData(null);
-    setPayoutData(null);
     localStorage.removeItem("user");
     localStorage.removeItem("token");
     localStorage.removeItem("regno");
@@ -216,14 +108,11 @@ export const UserProvider = ({ children }) => {
       value={{
         user,
         userData,
-        stakeData,
-        payoutData,
+        loading,
         refreshData: fetchData,
         refreshUserData,
-        investNow,
         loginUser,
-        logoutUser,
-        loading
+        logoutUser
       }}
     >
       {children}
@@ -231,4 +120,4 @@ export const UserProvider = ({ children }) => {
   );
 };
 
-export const useUser = () => useContext(UserContext);
+export const useUser = () => useContext(UserContext); 
