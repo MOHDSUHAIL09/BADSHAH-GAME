@@ -290,33 +290,40 @@ const Dashboard = () => {
       <div className="animated-bg"></div>
       <div className="particles"></div>
 
-      <div className="container-fluid py-4">
+      <div className="container py-4">
         <div className="container">
-          {/* Header */}
-          <div className="text-center mb-4">
-            <div className="glow-header">
-              <h1 className="main-title">
-                <span className="title-gradient01">⚡ BADSHAH GAME ⚡</span>
-              </h1>
-              <p className="subtitle">Badshah 1 Minute | Bet & Win 9x Big!</p>
-            </div>
-          </div>
 
-          {/* Wallet Cards */}
-          <div className="row g-3 mb-4">
-            <div className="col-12 col-md-12">
-              <div className="wallet-card-new">
-                <div className="wallet-icon">
-                  <i className="bi bi-wallet2"></i>
-                </div>
-                <div className="wallet-info">
-                  <span>WALLET BALANCE</span>
-                  <h2>₹{(userData?.currentamt || 0)}</h2>
-                </div>
-              </div>
-            </div>
-          </div>
 
+{/* Wallet Cards */}
+<div className="row g-3 mb-4">
+  <div className="col-12">
+    <div className="wallet-card-new d-flex align-items-center justify-content-between">
+      <div className="d-flex align-items-center gap-3">
+        <div className="wallet-icon">
+          <i className="bi bi-wallet2"></i>
+        </div>
+        <div className="wallet-info">
+          <span>WALLET BALANCE</span>
+          <h2>₹{(userData?.currentamt || 0)}</h2>
+        </div>
+      </div>
+      
+      {/* ADD FUND Button inside same card */}
+      <button 
+        className="btn btn-warning fw-bold py-2 px-4"
+        style={{ 
+          borderRadius: '12px', 
+          background: 'linear-gradient(135deg, #ffd700, #ff8c00)', 
+          border: 'none',
+          whiteSpace: 'nowrap'
+        }}
+        onClick={() => console.log('Add Fund clicked')}
+      >
+        PayOut
+      </button>
+    </div>
+  </div>
+</div>
           {/* Timer & Results Row */}
           <div className="row g-3 mb-4">
             <div className="col-12 col-md-7">
