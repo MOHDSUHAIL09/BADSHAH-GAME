@@ -20,7 +20,7 @@ const Header = () => {
   return (
 
     <div 
-      className={`3header01 ${isScrolled ? 'scrolled01' : ''}`}
+      className={`header01 ${isScrolled ? 'scrolled01' : ''}`}
       style={{
         position: 'sticky',
         top: 0,
@@ -29,7 +29,7 @@ const Header = () => {
       }}
     >
       <div className="container">
-        <div className="d-flex justify-content-between align-items-center py-3">
+        <div className=" d-flex justify-content-between align-items-center px-3 py-3">
           {/* Logo - fixed white color, no change */}
           <div 
             className="text-logo fw-bold fs-4"
