@@ -32,6 +32,7 @@ const Dashboard = () => {
   const [gameId, setGameId] = useState('');
   const [isPlacingBet, setIsPlacingBet] = useState(false);
   const [isRoundActive, setIsRoundActive] = useState(true);
+  const [isUserDataLoaded, setIsUserDataLoaded] = useState(false);
 
   // ==================== REFS ====================
   const last10ModalShownRef = useRef(false);
@@ -39,6 +40,7 @@ const Dashboard = () => {
   const isResultDeclaredRef = useRef(false);
   const modalTimeoutRef = useRef(null);
   const toastTimeoutRef = useRef(null);
+  const gameIdRef = useRef('');  // ✅ ADDED - for persistent gameId
 
   // ==================== GAME ITEMS (12 CARDS) ====================
   const items = [
@@ -67,7 +69,7 @@ const Dashboard = () => {
       totalAmount: bets.reduce((sum, b) => sum + b.amount, 0)
     };
     localStorage.setItem(`bets_${gameId}`, JSON.stringify(betData));
-    console.log("💾 Bets saved to localStorage:", betData);
+    console.log("💾 Bets saved to localStorage for game:", gameId);
   };
 
   const getBetsFromLocalStorage = (gameId) => {
@@ -76,18 +78,6 @@ const Dashboard = () => {
       return JSON.parse(data);
     }
     return null;
-  };
-
-  const getAllBetsHistory = () => {
-    const allBets = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('bets_')) {
-        const betData = JSON.parse(localStorage.getItem(key));
-        allBets.push(betData);
-      }
-    }
-    return allBets;
   };
 
   // ==================== HELPER FUNCTIONS ====================
@@ -108,20 +98,19 @@ const Dashboard = () => {
   // ==================== API CALLS ====================
   const addBidToAPI = async (pid, totalDebitAmount, betNumbersString, perbitAmountsString, game, gameType, gameId, accType) => {
     try {
-      const token = getAuthToken();
       const requestBody = {
         pid: Number(pid),
         debit: Number(totalDebitAmount),
         bet: betNumbersString,
         perbit: perbitAmountsString,
-        game: String(game),
-        gameType: String(gameType),
+        game: String("1"),
+        gameType: String("A"),
         gameId: String(gameId),
-        accType: String(accType)
+        accType: String("PLAYGAME")
       };
-      const response = await apiClient.post('/Trading/AddBid', requestBody, {
-        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
-      });
+      console.log("📤 Sending bet to API:", requestBody);
+      const response = await apiClient.post('/Trading/AddBid', requestBody);
+      console.log("📥 API Response:", response.data);
       return response.data;
     } catch (error) {
       console.error('AddBid Error:', error);
@@ -153,89 +142,90 @@ const Dashboard = () => {
     }
   };
 
-  // ==================== CHECK WINNING RESULT FROM LOCAL STORAGE ====================
+  // ==================== CHECK WINNING RESULT ====================
   const checkWinningResult = async () => {
     try {
       const token = getAuthToken();
       const response = await apiClient.get('/Trading/game-result', {
-        params: { PageIndex: 1, PageSize: 10 },
+        params: { PageIndex: 1, PageSize: 50 },
         headers: { 'Accept': '*/*', 'Authorization': `Bearer ${token}` }
       });
       
       if (response.data?.success) {
         const results = response.data.data?.data || [];
-        if (results.length > 0) {
-          const winningNumber = results[0].betnumber;
-          console.log("🏆 Winning Number from API:", winningNumber);
-          
-          // ✅ Get bets from localStorage for current gameId
-          const savedBets = getBetsFromLocalStorage(gameId);
-          console.log("📦 Saved bets for game", gameId, ":", savedBets);
-          
-          let isWin = false;
-          let winAmount = 0;
-          let winningIndex = -1;
-          let winningIcon = null;
-          let userBetAmount = 0;
-          
-          if (savedBets && savedBets.bets) {
-            // ✅ Check if winning number exists in saved bets
-            const matchedBet = savedBets.bets.find(bet => bet.betNumber === winningNumber);
-            
-            if (matchedBet) {
-              isWin = true;
-              userBetAmount = matchedBet.amount;
-              winAmount = userBetAmount * 9;
-              winningIndex = items.findIndex(item => item.emojiCode === winningNumber);
-              winningIcon = items[winningIndex];
-              console.log("🎉 WIN! Bet matched:", matchedBet);
-            } else {
-              console.log("😢 LOSE! No bet on winning number", winningNumber);
-              // Find winning icon for display
-              winningIndex = items.findIndex(item => item.emojiCode === winningNumber);
-              if (winningIndex !== -1) {
-                winningIcon = items[winningIndex];
-              }
-            }
-          } else {
-            console.log("No saved bets found for this game");
-            winningIndex = items.findIndex(item => item.emojiCode === winningNumber);
-            if (winningIndex !== -1) {
-              winningIcon = items[winningIndex];
-            }
-          }
-          
-          console.log("Is Win:", isWin);
-          console.log("Win Amount (9x):", winAmount);
-          
-          if (isWin) {
-            showToastMessage(`🎉 Congratulations! You won ₹${winAmount}! (9x of ₹${userBetAmount})`, true);
+        console.log("📊 API Results:", results.map(r => ({ gameid: r.gameid, betnumber: r.betnumber })));
+        
+        // ✅ Use ref for persistent gameId
+        const currentGameId = gameIdRef.current;
+        console.log("🎮 Current Game ID from ref:", currentGameId);
+        
+        if (!currentGameId) {
+          console.log("No game ID in ref");
+          return null;
+        }
+        
+        // ✅ Find result for EXACT same game ID
+        const myGameResult = results.find(r => r.gameid === currentGameId);
+        
+        if (!myGameResult) {
+          console.log(`⏳ No entry found for game ${currentGameId} yet`);
+          return null;
+        }
+        
+        const winningNumber = myGameResult.betnumber;
+        console.log("🏆 Winning Number:", winningNumber);
+        
+        // ✅ Wait until betnumber has a real value
+        if (!winningNumber || winningNumber === null) {
+          console.log("⏳ Game result not ready yet (betnumber is null)");
+          return null;
+        }
+        
+        // ✅ Get bets from localStorage
+        const savedBets = getBetsFromLocalStorage(currentGameId);
+        console.log("📦 Saved bets:", savedBets);
+        
+        let isWin = false;
+        let winAmount = 0;
+        let userBetAmount = 0;
+        const winningIndex = items.findIndex(item => item.emojiCode === winningNumber);
+        const winningIcon = winningIndex !== -1 ? items[winningIndex] : null;
+        
+        if (savedBets && savedBets.bets) {
+          const matchedBet = savedBets.bets.find(bet => bet.betNumber === winningNumber);
+          if (matchedBet) {
+            isWin = true;
+            userBetAmount = matchedBet.amount;
+            winAmount = userBetAmount * 9;
+            console.log("🎉 WIN! Bet matched");
+            showToastMessage(`🎉 You won ₹${winAmount}! (9x)`, true);
             setTimeout(() => refreshData(), 500);
           } else {
-            showToastMessage(`😢 Better luck next time! Winning number was ${winningIcon?.name || winningNumber}`, false);
+            console.log("😢 LOSE! No bet on", winningNumber);
+            showToastMessage(`😢 Winning number was ${winningIcon?.name || winningNumber}`, false);
           }
-          
-          setWinnerIndex(winningIndex);
-          setCurrentIcon(winningIcon);
-          setModalData({ 
-            isWin, 
-            amount: winAmount, 
-            icon: winningIcon, 
-            betAmount: userBetAmount,
-            winningNumber: winningNumber
-          });
-          setShowModal(true);
-          await fetchGameResults();
-          
-          setTimeout(() => setWinnerIndex(null), 3000);
-          if (modalTimeoutRef.current) clearTimeout(modalTimeoutRef.current);
-          modalTimeoutRef.current = setTimeout(() => {
-            setShowModal(false);
-            startNewRound();
-          }, 4000);
-          
-          return { isWin, winAmount };
         }
+        
+        setWinnerIndex(winningIndex);
+        setCurrentIcon(winningIcon);
+        setModalData({ 
+          isWin, 
+          amount: winAmount, 
+          icon: winningIcon, 
+          betAmount: userBetAmount,
+          winningNumber: winningNumber
+        });
+        setShowModal(true);
+        await fetchGameResults();
+        
+        setTimeout(() => setWinnerIndex(null), 3000);
+        if (modalTimeoutRef.current) clearTimeout(modalTimeoutRef.current);
+        modalTimeoutRef.current = setTimeout(() => {
+          setShowModal(false);
+          startNewRound();
+        }, 4000);
+        
+        return { isWin, winAmount };
       }
       return null;
     } catch (error) {
@@ -325,19 +315,21 @@ const Dashboard = () => {
 
     setIsPlacingBet(true);
     try {
+      const currentGameId = gameIdRef.current || gameId;
+      console.log("🎮 Placing bet for game ID:", currentGameId);
+      
       const result = await addBidToAPI(
         Number(userData?.pid) || 1,
         totalPreviewAmount,
         betNumbersString,
         perbitAmountsString,
-        "number",
+        "1",
         "A",
-        String(gameId),
-        "playgame"
+        String(currentGameId),
+        "PLAYGAME"
       );
       
       if (result?.success) {
-        // ✅ Save bets to localStorage
         const betsToSave = selectedBets.map(bet => ({
           betNumber: bet.betNumber,
           amount: bet.amount,
@@ -345,7 +337,8 @@ const Dashboard = () => {
           emoji: bet.emoji
         }));
         
-        saveBetsToLocalStorage(gameId, betsToSave);
+        saveBetsToLocalStorage(currentGameId, betsToSave);
+        gameIdRef.current = currentGameId;
         
         const newBetAmounts = [...betAmounts];
         let totalDeduction = 0;
@@ -409,7 +402,8 @@ const Dashboard = () => {
         isWin: winnerBet > 0,
         amount: winAmount,
         icon: winningIcon,
-        betAmount: winnerBet
+        betAmount: winnerBet,
+        winningNumber: winningIcon.emojiCode
       });
       setShowModal(true);
       setTimeout(() => setWinnerIndex(null), 3000);
@@ -429,6 +423,9 @@ const Dashboard = () => {
       }
       if (userData.gameid) {
         setGameId(userData.gameid);
+        gameIdRef.current = userData.gameid;
+        setIsUserDataLoaded(true);
+        console.log("🎮 Game ID synced from API:", userData.gameid);
       }
     }
   }, [userData]);

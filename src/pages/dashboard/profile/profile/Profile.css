@@ -1,0 +1,225 @@
+/* Profile.css */
+
+.container {
+  max-width: 1400px;
+}
+
+/* MAIN CARD */
+
+.withdraw-card {
+  background: rgba(255, 255, 255, 0.1) ;
+  border-radius: 14px;
+  overflow: hidden;
+  padding: 25px;
+}
+
+/* HEADER */
+
+.withdraw-header h3 {
+  color: #ffd700;;
+  font-size: 34px;
+  font-weight: 700;
+}
+
+.payout-history-btn {
+  width: 70px;
+  height: 70px;
+  border: none;
+  background: transparent;
+  font-size: 40px;
+}
+
+/* LABEL */
+
+.form-label {
+  color: #ffd700;;
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  display: block;
+}
+
+/* TOP CARDS */
+
+.balance-card {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  height: 78px;
+  border-radius: 16px;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+}
+
+.payoutable-amount {
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: 500;
+  margin: 0;
+}
+
+/* INPUT */
+
+.custom-input,
+.custom-select,
+.upload-input {
+  height: 78px;
+  background: rgba(0, 0, 0, 0.4) !important;
+  border: 1px solid rgba(255, 215, 0, 0.3) !important;
+  border-radius: 16px !important;
+  color: #ffffff !important;
+  font-size: 22px !important;
+  padding: 0 24px !important;
+  box-shadow: none !important;
+}
+
+
+/* SELECT */
+
+.payment-select-wrapper {
+  position: relative;
+}
+
+.custom-select {
+  appearance: none;
+  cursor: pointer;
+}
+
+/* FILE */
+
+.upload-box {
+  width: 100%;
+}
+
+.upload-input {
+  padding-top: 18px !important;
+}
+
+/* BUTTON */
+
+.update-profile-btn {
+  min-width: 400px;
+  height: 50px;
+  border: 2px solid #ff9900;
+  border-radius: 50px;
+  background: linear-gradient(
+    to bottom,
+    #bfff00 0%,
+    #74ff00 45%,
+    #36cf00 100%
+  );
+  color: #000000;
+  font-size: 20px;
+  font-weight: 700;
+  transition: 0.3s;
+  box-shadow:
+    inset 0 5px 10px rgba(255,255,255,0.6),
+    0 0 12px rgba(118,255,3,0.6);
+}
+
+.update-profile-btn:hover {
+  transform: scale(1.03);
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 992px) {
+
+  .withdraw-header h3 {
+    font-size: 28px;
+  }
+
+  .custom-input,
+  .custom-select,
+  .upload-input,
+  .balance-card {
+    height: 68px;
+    font-size: 18px !important;
+  }
+
+  .update-profile-btn {
+    min-width: 100%;
+    font-size: 24px;
+  }
+
+}
+
+@media (max-width: 768px) {
+
+  .withdraw-card {
+    padding: 18px;
+  }
+
+  .withdraw-header h3 {
+    font-size: 24px;
+  }
+
+  .form-label {
+    font-size: 16px;
+  }
+
+  .custom-input,
+  .custom-select,
+  .upload-input,
+  .balance-card {
+    height: 60px;
+    font-size: 16px !important;
+    border-radius: 12px !important;
+    padding: 0 18px !important;
+  }
+
+  .payoutable-amount {
+    font-size: 18px;
+  }
+
+  .update-profile-btn {
+    height: 60px;
+    font-size: 20px;
+  }
+
+}
+
+@media (max-width: 480px) {
+
+  .withdraw-card {
+    padding: 14px;
+  }
+
+  .withdraw-header h3 {
+    font-size: 20px;
+  }
+
+  .payout-history-btn {
+    width: 50px;
+    height: 50px;
+    font-size: 28px;
+  }
+
+  .update-profile-btn {
+    height: 56px;
+    font-size: 17px;
+    border-width: 3px;
+  }
+
+}
+
+
+
+/* Force Toast to be on top of everything */
+.Toastify__toast-container {
+  z-index: 9999999 !important;
+  position: fixed !important;
+  pointer-events: auto !important;
+}
+
+.Toastify__toast {
+  z-index: 9999999 !important;
+  position: relative !important;
+}
+
+/* Override any modal/dropdown that might be covering */
+.modal-overlay,
+.dropdown-menu,
+.modal-container {
+  z-index: 999 !important;
+}
