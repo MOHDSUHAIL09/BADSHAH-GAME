@@ -12,34 +12,26 @@ const Dashboard = () => {
   const { userData, refreshData } = useUser();
 
   // ==================== STATE VARIABLES ====================
-  
-  // Game States
   const [totalBet, setTotalBet] = useState(0);
   const [selectedAmount, setSelectedAmount] = useState(10);
   const [betAmounts, setBetAmounts] = useState(Array(12).fill(0));
   const [previewAmounts, setPreviewAmounts] = useState(Array(12).fill(0));
-  
-  // Result States
   const [winnerIndex, setWinnerIndex] = useState(null);
   const [winningAmount, setWinningAmount] = useState(0);
   const [resultHistory, setResultHistory] = useState([]);
-  const [gameResults, setGameResults] = useState([]); // Store API results
-  
-  // UI States
+  const [gameResults, setGameResults] = useState([]);
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [modalData, setModalData] = useState({ isWin: false, amount: 0, icon: null });
+  const [modalData, setModalData] = useState({ isWin: false, amount: 0, icon: null, betAmount: 0 });
   const [showLast10Modal, setShowLast10Modal] = useState(false);
   const [last10TimeLeft, setLast10TimeLeft] = useState(10);
-  
-  // Timer & Game States
   const [timeLeft, setTimeLeft] = useState(60);
   const [currentIcon, setCurrentIcon] = useState(null);
   const [isBettingLocked, setIsBettingLocked] = useState(false);
   const [gameId, setGameId] = useState('');
   const [isPlacingBet, setIsPlacingBet] = useState(false);
-  const [currentRoundGameId, setCurrentRoundGameId] = useState('');
+  const [isRoundActive, setIsRoundActive] = useState(true);
 
   // ==================== REFS ====================
   const last10ModalShownRef = useRef(false);
@@ -66,188 +58,237 @@ const Dashboard = () => {
 
   const betOptions = [10, 20, 50, 100, 500, 1000, 5000, 10000];
 
-  // ==================== HELPER FUNCTIONS ====================
-  
-  const getAuthToken = () => {
-    return localStorage.getItem('token') || '';
+  // ==================== LOCAL STORAGE FUNCTIONS ====================
+  const saveBetsToLocalStorage = (gameId, bets) => {
+    const betData = {
+      gameId: gameId,
+      timestamp: new Date().toISOString(),
+      bets: bets,
+      totalAmount: bets.reduce((sum, b) => sum + b.amount, 0)
+    };
+    localStorage.setItem(`bets_${gameId}`, JSON.stringify(betData));
+    console.log("💾 Bets saved to localStorage:", betData);
   };
 
+  const getBetsFromLocalStorage = (gameId) => {
+    const data = localStorage.getItem(`bets_${gameId}`);
+    if (data) {
+      return JSON.parse(data);
+    }
+    return null;
+  };
+
+  const getAllBetsHistory = () => {
+    const allBets = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('bets_')) {
+        const betData = JSON.parse(localStorage.getItem(key));
+        allBets.push(betData);
+      }
+    }
+    return allBets;
+  };
+
+  // ==================== HELPER FUNCTIONS ====================
+  const getAuthToken = () => localStorage.getItem('token') || '';
+  
   const showToastMessage = (message, isSuccess = true) => {
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
     setToastMessage(message);
     setShowToast(true);
-    toastTimeoutRef.current = setTimeout(() => {
-      setShowToast(false);
-    }, 2000);
+    toastTimeoutRef.current = setTimeout(() => setShowToast(false), 2000);
   };
 
   const formatSeconds = (seconds) => {
     const secs = seconds % 60;
     return secs.toString().padStart(2, '0');
   };
-  // ==================== API CALL FUNCTION - ADD BID ====================
-  const addBidToAPI = async (pid, debitAmount, betNumber, perbitAmount, game, gameType, gameId, accType) => {
+
+  // ==================== API CALLS ====================
+  const addBidToAPI = async (pid, totalDebitAmount, betNumbersString, perbitAmountsString, game, gameType, gameId, accType) => {
     try {
       const token = getAuthToken();
-
       const requestBody = {
         pid: Number(pid),
-        debit: Number(debitAmount),
-        bet: String(betNumber),
-        perbit: String(perbitAmount),
+        debit: Number(totalDebitAmount),
+        bet: betNumbersString,
+        perbit: perbitAmountsString,
         game: String(game),
         gameType: String(gameType),
         gameId: String(gameId),
         accType: String(accType)
       };
-
-      console.log("========== ADD BID API CALL ==========");
-      console.log("Request Body:", JSON.stringify(requestBody, null, 2));
-
       const response = await apiClient.post('/Trading/AddBid', requestBody, {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
       });
-
-      console.log("✅ AddBid Response:", response.data);
       return response.data;
     } catch (error) {
-      console.error('❌ AddBid API Error:', error);
-      if (error.response?.data) {
-        console.error('Error Response Data:', JSON.stringify(error.response.data, null, 2));
-      }
+      console.error('AddBid Error:', error);
       throw error;
     }
   };
 
-  // ==================== API CALL FUNCTION - GET GAME RESULTS ====================
   const fetchGameResults = async () => {
     try {
       const token = getAuthToken();
-      
       const response = await apiClient.get('/Trading/game-result', {
-        params: {
-          PageIndex: 1,
-          PageSize: 5
-        },
-        headers: {
-          'Accept': '*/*',
-          'Authorization': `Bearer ${token}`
-        }
+        params: { PageIndex: 1, PageSize: 5 },
+        headers: { 'Accept': '*/*', 'Authorization': `Bearer ${token}` }
       });
-
-      console.log("========== GAME RESULTS API ==========");
-      console.log("Response:", response.data);
-      
-      if (response.data && response.data.success === true) {
+      if (response.data?.success) {
         const results = response.data.data?.data || [];
-        setGameResults(results);
-        
-        // Update result history for display
         const history = results.map(result => {
-          // Find matching item by betnumber
           const matchedItem = items.find(item => item.emojiCode === result.betnumber);
           return {
             name: matchedItem ? matchedItem.name : result.betnumber,
             emoji: matchedItem ? matchedItem.emoji : '🎲',
-            betnumber: result.betnumber,
-            gameid: result.gameid,
-            edate: result.edate
+            betnumber: result.betnumber
           };
         });
-        
         setResultHistory(history);
-        console.log("Updated Result History:", history);
       }
     } catch (error) {
-      console.error('❌ Fetch Game Results Error:', error);
-      if (error.response?.data) {
-        console.error('Error Details:', error.response.data);
-      }
+      console.error('Fetch Results Error:', error);
     }
   };
 
-  // ==================== CHECK WINNING RESULT ====================
+  // ==================== CHECK WINNING RESULT FROM LOCAL STORAGE ====================
   const checkWinningResult = async () => {
     try {
       const token = getAuthToken();
-      
       const response = await apiClient.get('/Trading/game-result', {
-        params: {
-          PageIndex: 1,
-          PageSize: 5
-        },
-        headers: {
-          'Accept': '*/*',
-          'Authorization': `Bearer ${token}`
-        }
+        params: { PageIndex: 1, PageSize: 10 },
+        headers: { 'Accept': '*/*', 'Authorization': `Bearer ${token}` }
       });
-
-      if (response.data && response.data.success === true) {
+      
+      if (response.data?.success) {
         const results = response.data.data?.data || [];
-        
-        // Find the latest result for current gameId or latest result
-        const latestResult = results[0];
-        
-        if (latestResult && latestResult.betnumber) {
-          const winningNumber = latestResult.betnumber;
-          const winningIndex = items.findIndex(item => item.emojiCode === winningNumber);
+        if (results.length > 0) {
+          const winningNumber = results[0].betnumber;
+          console.log("🏆 Winning Number from API:", winningNumber);
           
-          if (winningIndex !== -1) {
-            const winningIcon = items[winningIndex];
-            const winnerBet = betAmounts[winningIndex];
-            const winAmount = winnerBet * 9;
-            const isWin = winnerBet > 0;
+          // ✅ Get bets from localStorage for current gameId
+          const savedBets = getBetsFromLocalStorage(gameId);
+          console.log("📦 Saved bets for game", gameId, ":", savedBets);
+          
+          let isWin = false;
+          let winAmount = 0;
+          let winningIndex = -1;
+          let winningIcon = null;
+          let userBetAmount = 0;
+          
+          if (savedBets && savedBets.bets) {
+            // ✅ Check if winning number exists in saved bets
+            const matchedBet = savedBets.bets.find(bet => bet.betNumber === winningNumber);
             
-            setWinnerIndex(winningIndex);
-            setCurrentIcon(winningIcon);
-            
-            setModalData({
-              isWin: isWin,
-              amount: winAmount,
-              icon: winningIcon
-            });
-            setShowModal(true);
-            
-            // Update result history
-            await fetchGameResults();
-            
-            setTimeout(() => {
-              setWinnerIndex(null);
-            }, 3000);
-            
-            if (modalTimeoutRef.current) clearTimeout(modalTimeoutRef.current);
-            modalTimeoutRef.current = setTimeout(() => {
-              setShowModal(false);
-              resetAfterResult();
-            }, 3000);
-            
-            return { isWin, winAmount, winningIcon };
+            if (matchedBet) {
+              isWin = true;
+              userBetAmount = matchedBet.amount;
+              winAmount = userBetAmount * 9;
+              winningIndex = items.findIndex(item => item.emojiCode === winningNumber);
+              winningIcon = items[winningIndex];
+              console.log("🎉 WIN! Bet matched:", matchedBet);
+            } else {
+              console.log("😢 LOSE! No bet on winning number", winningNumber);
+              // Find winning icon for display
+              winningIndex = items.findIndex(item => item.emojiCode === winningNumber);
+              if (winningIndex !== -1) {
+                winningIcon = items[winningIndex];
+              }
+            }
+          } else {
+            console.log("No saved bets found for this game");
+            winningIndex = items.findIndex(item => item.emojiCode === winningNumber);
+            if (winningIndex !== -1) {
+              winningIcon = items[winningIndex];
+            }
           }
+          
+          console.log("Is Win:", isWin);
+          console.log("Win Amount (9x):", winAmount);
+          
+          if (isWin) {
+            showToastMessage(`🎉 Congratulations! You won ₹${winAmount}! (9x of ₹${userBetAmount})`, true);
+            setTimeout(() => refreshData(), 500);
+          } else {
+            showToastMessage(`😢 Better luck next time! Winning number was ${winningIcon?.name || winningNumber}`, false);
+          }
+          
+          setWinnerIndex(winningIndex);
+          setCurrentIcon(winningIcon);
+          setModalData({ 
+            isWin, 
+            amount: winAmount, 
+            icon: winningIcon, 
+            betAmount: userBetAmount,
+            winningNumber: winningNumber
+          });
+          setShowModal(true);
+          await fetchGameResults();
+          
+          setTimeout(() => setWinnerIndex(null), 3000);
+          if (modalTimeoutRef.current) clearTimeout(modalTimeoutRef.current);
+          modalTimeoutRef.current = setTimeout(() => {
+            setShowModal(false);
+            startNewRound();
+          }, 4000);
+          
+          return { isWin, winAmount };
         }
       }
       return null;
     } catch (error) {
-      console.error('Error checking result:', error);
+      console.error('Check Result Error:', error);
       return null;
     }
   };
 
-  // ==================== BET PLACEMENT FUNCTION ====================
+  // ==================== START NEW ROUND ====================
+  const startNewRound = () => {
+    console.log("========== STARTING NEW ROUND ==========");
+    
+    setBetAmounts(Array(12).fill(0));
+    setPreviewAmounts(Array(12).fill(0));
+    setTotalBet(0);
+    setWinnerIndex(null);
+    setCurrentIcon(null);
+    setIsBettingLocked(false);
+    isResultDeclaredRef.current = false;
+    last10ModalShownRef.current = false;
+    setShowLast10Modal(false);
+    setTimeLeft(60);
+    setIsRoundActive(true);
+    
+    if (timerRef.current) clearInterval(timerRef.current);
+    
+    timerRef.current = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev === 11 && !last10ModalShownRef.current && !isResultDeclaredRef.current) {
+          showLast10SecondsModal();
+        }
+        if (prev <= 1) {
+          clearInterval(timerRef.current);
+          if (!isResultDeclaredRef.current) {
+            declareResult();
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  // ==================== BET PLACEMENT ====================
   const handlePlaceBet = async () => {
     if (isBettingLocked) {
       showToastMessage('⛔ Betting closed! Last 10 seconds remaining!', false);
       return;
     }
-    
-    if (isResultDeclaredRef.current) {
-      showToastMessage('⏳ Please wait for next round!', false);
+    if (!isRoundActive) {
+      showToastMessage('⏳ Round ended! Next round starting soon...', false);
       return;
     }
-    
     if (isPlacingBet) {
       showToastMessage('⏳ Please wait, placing bets...', false);
       return;
@@ -259,9 +300,6 @@ const Dashboard = () => {
       return;
     }
 
-    const totalPreviewAmount = previewAmounts.reduce((sum, amount) => sum + amount, 0);
-    const currentWallet = userData?.currentamt || 0;
-
     const selectedBets = [];
     for (let i = 0; i < previewAmounts.length; i++) {
       if (previewAmounts[i] > 0) {
@@ -269,92 +307,76 @@ const Dashboard = () => {
           index: i,
           amount: previewAmounts[i],
           betNumber: items[i].emojiCode,
-          name: items[i].name
+          name: items[i].name,
+          emoji: items[i].emoji
         });
       }
     }
 
-    console.log("========== PLACE BET SUMMARY ==========");
-    console.log("Selected Cards:", selectedBets.length);
-    console.log("Total Amount:", totalPreviewAmount);
-    console.log("Wallet Balance:", currentWallet);
+    const totalPreviewAmount = previewAmounts.reduce((sum, amount) => sum + amount, 0);
+    const currentWallet = userData?.currentamt || 0;
+    const betNumbersString = selectedBets.map(bet => bet.betNumber).join(',');
+    const perbitAmountsString = selectedBets.map(bet => bet.amount).join(',');
 
     if (currentWallet < totalPreviewAmount) {
-      showToastMessage(`⚠️ Insufficient balance! Need ₹${totalPreviewAmount} but have ₹${currentWallet}`, false);
+      showToastMessage(`⚠️ Insufficient balance! Need ₹${totalPreviewAmount}`, false);
       return;
     }
 
     setIsPlacingBet(true);
-    let successCount = 0;
-    let failCount = 0;
-    let totalDeduction = 0;
-    const newBetAmounts = [...betAmounts];
-    const currentGameIdForRound = generateGameId();
-    setCurrentRoundGameId(currentGameIdForRound);
-
-    for (let i = 0; i < selectedBets.length; i++) {
-      const bet = selectedBets[i];
+    try {
+      const result = await addBidToAPI(
+        Number(userData?.pid) || 1,
+        totalPreviewAmount,
+        betNumbersString,
+        perbitAmountsString,
+        "number",
+        "A",
+        String(gameId),
+        "playgame"
+      );
       
-      try {
-        console.log(`\n--- Placing bet on ${bet.name} ---`);
+      if (result?.success) {
+        // ✅ Save bets to localStorage
+        const betsToSave = selectedBets.map(bet => ({
+          betNumber: bet.betNumber,
+          amount: bet.amount,
+          name: bet.name,
+          emoji: bet.emoji
+        }));
         
-        const result = await addBidToAPI(
-          Number(userData?.pid) || Number(userData?.id) || 1,
-          Number(bet.amount),
-          String(bet.betNumber),
-          String(bet.amount),
-          "Number",
-          "A",
-          String(currentGameIdForRound),
-          "playgame"
-        );
-
-        if (result && result.success === true) {
-          successCount++;
+        saveBetsToLocalStorage(gameId, betsToSave);
+        
+        const newBetAmounts = [...betAmounts];
+        let totalDeduction = 0;
+        for (const bet of selectedBets) {
           newBetAmounts[bet.index] += bet.amount;
           totalDeduction += bet.amount;
-          console.log(`✅ Success on ${bet.name}`);
-        } else {
-          failCount++;
-          console.log(`❌ Failed on ${bet.name}:`, result?.message || 'Unknown error');
         }
-      } catch (error) {
-        failCount++;
-        console.error(`❌ Error on ${bet.name}:`, error);
+        setBetAmounts(newBetAmounts);
+        setTotalBet(totalBet + totalDeduction);
+        setPreviewAmounts(Array(12).fill(0));
+        setTimeout(() => refreshData(), 1000);
+        showToastMessage(`✅ ${selectedBets.length} bets placed! Total: ₹${totalDeduction}`, true);
+      } else {
+        showToastMessage('❌ Failed to place bets.', false);
       }
-      
-      if (i < selectedBets.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
+    } catch (error) {
+      console.error("Error placing bets:", error);
+      showToastMessage('❌ API Error!', false);
     }
-
-    console.log(`\n✅ Success: ${successCount}, ❌ Failed: ${failCount}, 💰 Total: ₹${totalDeduction}`);
-
-    if (successCount > 0) {
-      setBetAmounts(newBetAmounts);
-      setTotalBet(totalBet + totalDeduction);
-      setPreviewAmounts(Array(12).fill(0));
-      setTimeout(() => refreshData(), 1000);
-      showToastMessage(`✅ ${successCount} bets placed! Total: ₹${totalDeduction}`, true);
-      if (failCount > 0) {
-        showToastMessage(`⚠️ ${failCount} bets failed. Please try again!`, false);
-      }
-    } else {
-      showToastMessage('❌ Failed to place bets. Please try again!', false);
-    }
-
     setIsPlacingBet(false);
   };
 
-  // ==================== GAME TIMER & RESULT FUNCTIONS ====================
-  
+  // ==================== LAST 10 SECONDS MODAL ====================
   const showLast10SecondsModal = () => {
     if (last10ModalShownRef.current) return;
+    console.log("🔔 Last 10 seconds!");
     last10ModalShownRef.current = true;
     setIsBettingLocked(true);
     setLast10TimeLeft(10);
     setShowLast10Modal(true);
-
+    
     const countdownInterval = setInterval(() => {
       setLast10TimeLeft(prev => {
         if (prev <= 1) {
@@ -364,95 +386,45 @@ const Dashboard = () => {
         return prev - 1;
       });
     }, 1000);
-
+    
     setTimeout(() => {
       setShowLast10Modal(false);
+      last10ModalShownRef.current = false;
     }, 10000);
   };
 
-  const resetAfterResult = () => {
-    setBetAmounts(Array(12).fill(0));
-    setPreviewAmounts(Array(12).fill(0));
-    setTotalBet(0);
-    setWinnerIndex(null);
-    setWinningAmount(0);
-    setCurrentIcon(null);
-    isResultDeclaredRef.current = false;
-    setIsBettingLocked(false);
-    last10ModalShownRef.current = false;
-    setGameId(generateGameId());
-    setTimeLeft(60);
-
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
-
-    timerRef.current = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev === 11 && !last10ModalShownRef.current && !isResultDeclaredRef.current) {
-          showLast10SecondsModal();
-        }
-        if (prev <= 1) {
-          if (!isResultDeclaredRef.current) {
-            declareResult();
-          }
-          return 60;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
-
+  // ==================== DECLARE RESULT ====================
   const declareResult = async () => {
     if (isResultDeclaredRef.current) return;
     isResultDeclaredRef.current = true;
+    setIsRoundActive(false);
     
-    // Fetch real result from API
     const result = await checkWinningResult();
-    
     if (!result) {
-      // Fallback to random if API fails
       const randomWinner = Math.floor(Math.random() * items.length);
       const winningIcon = items[randomWinner];
       const winnerBet = betAmounts[randomWinner];
       const winAmount = winnerBet * 9;
-      const isWin = winnerBet > 0;
-      
       setModalData({
-        isWin: isWin,
+        isWin: winnerBet > 0,
         amount: winAmount,
-        icon: winningIcon
+        icon: winningIcon,
+        betAmount: winnerBet
       });
       setShowModal(true);
-      
-      setTimeout(() => {
-        setWinnerIndex(null);
-      }, 3000);
-      
+      setTimeout(() => setWinnerIndex(null), 3000);
       if (modalTimeoutRef.current) clearTimeout(modalTimeoutRef.current);
       modalTimeoutRef.current = setTimeout(() => {
         setShowModal(false);
-        resetAfterResult();
-      }, 3000);
+        startNewRound();
+      }, 4000);
     }
   };
 
-  // ==================== INITIALIZE RESULTS ON LOAD ====================
-  useEffect(() => {
-    fetchGameResults();
-    
-    // Refresh results every 30 seconds
-    const interval = setInterval(() => {
-      fetchGameResults();
-    }, 30000);
-    
-    return () => clearInterval(interval);
-  }, []);
-
-  // ==================== TIMER INITIALIZATION ====================
+  // ==================== SYNC TIMER AND GAME ID FROM API ====================
   useEffect(() => {
     if (userData) {
-      if (userData.seconds && userData.seconds > 0 && userData.seconds <= 60) {
+      if (userData.seconds) {
         setTimeLeft(userData.seconds);
       }
       if (userData.gameid) {
@@ -461,25 +433,13 @@ const Dashboard = () => {
     }
   }, [userData]);
 
+  // ==================== INITIALIZE ====================
   useEffect(() => {
-    if (timerRef.current) clearInterval(timerRef.current);
-
-    timerRef.current = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 0) {
-          if (!isResultDeclaredRef.current) {
-            declareResult();
-          }
-          return 0;
-        }
-        if (prev === 11 && !last10ModalShownRef.current && !isResultDeclaredRef.current) {
-          showLast10SecondsModal();
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
+    fetchGameResults();
+    startNewRound();
+    const interval = setInterval(fetchGameResults, 20000);
     return () => {
+      clearInterval(interval);
       if (timerRef.current) clearInterval(timerRef.current);
       if (modalTimeoutRef.current) clearTimeout(modalTimeoutRef.current);
       if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
@@ -487,19 +447,16 @@ const Dashboard = () => {
   }, []);
 
   // ==================== UI HANDLERS ====================
-  
   const handleCardClick = (index) => {
     if (isBettingLocked) {
       showToastMessage('⛔ Betting closed! Last 10 seconds remaining!', false);
       return;
     }
-    if (isResultDeclaredRef.current) {
-      showToastMessage('⏳ Please wait for next round!', false);
+    if (!isRoundActive) {
+      showToastMessage('⏳ Round ended! Next round starting soon...', false);
       return;
     }
-
-    const currentPreview = previewAmounts[index];
-    if (currentPreview > 0) {
+    if (previewAmounts[index] > 0) {
       const newPreviewAmounts = [...previewAmounts];
       newPreviewAmounts[index] = 0;
       setPreviewAmounts(newPreviewAmounts);
@@ -508,7 +465,7 @@ const Dashboard = () => {
       const newPreviewAmounts = [...previewAmounts];
       newPreviewAmounts[index] = selectedAmount;
       setPreviewAmounts(newPreviewAmounts);
-      showToastMessage(`✨ ₹${selectedAmount} preview on ${items[index].name}! Click "Place Bet" to confirm`, true);
+      showToastMessage(`✨ ₹${selectedAmount} preview on ${items[index].name}!`, true);
     }
   };
 
@@ -517,49 +474,32 @@ const Dashboard = () => {
     <div className='game-container'>
       <div className="animated-bg"></div>
       <div className="particles"></div>
-
       <div className="container py-4">
         <div className="container">
-
+          
           {/* Wallet Cards */}
           <div className="row g-3 mb-4">
             <div className="col-12">
               <div className="wallet-card-new d-flex align-items-center justify-content-between flex-wrap gap-3">
-                
                 <div className="d-flex align-items-center gap-3">
-                  <div className="wallet-icon">
-                    <i className="bi bi-wallet2"></i>
-                  </div>
+                  <div className="wallet-icon"><i className="bi bi-wallet2"></i></div>
                   <div className="wallet-info">
                     <span>WALLET BALANCE</span>
                     <h2 className="mb-0">₹{(userData?.currentamt || 0)}</h2>
                   </div>
                 </div>
-
                 <div className="d-flex align-items-center gap-3">
-                  <div className="wallet-icon">
-                    <i className="bi bi-wallet2"></i>
-                  </div>
+                  <div className="wallet-icon"><i className="bi bi-wallet2"></i></div>
                   <div className="wallet-info">
                     <span style={{ color: "#FFF" }}>BETTING AMOUNT</span>
                     <h2 className="mb-0" style={{ color: "#ffd700" }}>₹{(userData?.totbettingamt || 0)}</h2>
                   </div>
                 </div>
-
                 <Link to="/dashboard/withdraw">
-                  <button 
-                    className="btn btn-warning fw-bold py-2 px-4"
-                    style={{ 
-                      borderRadius: '12px', 
-                      background: 'linear-gradient(135deg, #ffd700, #ff8c00)', 
-                      border: 'none',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
+                  <button className="btn btn-warning fw-bold py-2 px-4" style={{ borderRadius: '12px', background: 'linear-gradient(135deg, #ffd700, #ff8c00)', border: 'none' }}>
                     💸 PayOut
                   </button>
                 </Link>
-
               </div>
             </div>
           </div>
@@ -575,7 +515,6 @@ const Dashboard = () => {
                   </div>
                   {timeLeft <= 10 && timeLeft > 0 && <span className="urgent-badge">URGENT!</span>}
                 </div>
-
                 <div className='row'>
                   <div className='px-3'>
                     <div className="digit-box digital-timer d-flex justify-content-around align-items-center">
@@ -583,14 +522,13 @@ const Dashboard = () => {
                         <span>{formatSeconds(timeLeft)}</span>
                       </div>
                       <div className="timer-digits-box">
-                        <span>GAME ID: {gameId || userData?.gameid || 'LOADING'}</span>
+                        <span>GAME ID: {gameId || 'LOADING'}</span>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-
             <div className="col-12 col-md-5">
               <div className="results-card">
                 <div className="results-header">
@@ -616,35 +554,23 @@ const Dashboard = () => {
           {/* Game Grid - 12 Cards */}
           <div className="game-grid-card">
             <div className="grid-header">
-              <div className="header-left">
-                <i className="bi bi-grid-3x3-gap-fill"></i>
-                <span>SELECT YOUR BET</span>
-              </div>
-              <div className="bet-badge">
-                <i className="bi bi-trophy"></i> 9x WIN
-              </div>
+              <div className="header-left"><i className="bi bi-grid-3x3-gap-fill"></i><span>SELECT YOUR BET</span></div>
+              <div className="bet-badge"><i className="bi bi-trophy"></i> 9x WIN</div>
             </div>
             <div className="grid-body">
               <div className="row g-3">
                 {items.map((item, index) => (
                   <div key={item.id} className="col-4 col-md-3 col-lg-2">
                     <div
-                      className={`game-card 
-                        ${betAmounts[index] > 0 ? 'active' : ''} 
-                        ${winnerIndex === index ? 'winner' : ''}
-                        ${previewAmounts[index] > 0 ? 'preview' : ''}`}
+                      className={`game-card ${betAmounts[index] > 0 ? 'active' : ''} ${winnerIndex === index ? 'winner' : ''} ${previewAmounts[index] > 0 ? 'preview' : ''}`}
                       onClick={() => handleCardClick(index)}
-                      style={{ cursor: (isBettingLocked || isResultDeclaredRef.current || isPlacingBet) ? 'not-allowed' : 'pointer', opacity: (isBettingLocked || isResultDeclaredRef.current || isPlacingBet) ? 0.5 : 1 }}
+                      style={{ cursor: (isBettingLocked || !isRoundActive || isPlacingBet) ? 'not-allowed' : 'pointer', opacity: (isBettingLocked || !isRoundActive || isPlacingBet) ? 0.5 : 1 }}
                     >
                       <div className="card-glow"></div>
                       <div className="card-emoji">{item.emoji}</div>
                       <div className="card-name">{item.name}</div>
-                      {previewAmounts[index] > 0 && (
-                        <div className="card-preview-amount">🎯 ₹{previewAmounts[index]}</div>
-                      )}
-                      {betAmounts[index] > 0 && (
-                        <div className="card-bet">✅ ₹{betAmounts[index]}</div>
-                      )}
+                      {previewAmounts[index] > 0 && <div className="card-preview-amount">🎯 ₹{previewAmounts[index]}</div>}
+                      {betAmounts[index] > 0 && <div className="card-bet">✅ ₹{betAmounts[index]}</div>}
                     </div>
                   </div>
                 ))}
@@ -655,50 +581,22 @@ const Dashboard = () => {
           {/* Bet Amount Selector */}
           <div className="bet-selector-card">
             <div className="selector-header01 d-flex align-items-center justify-content-between">
+              <div className="d-flex align-items-center gap-2"><i className="bi bi-cash-coin"></i><span>TOTAL BET</span></div>
               <div className="d-flex align-items-center gap-2">
-                <i className="bi bi-cash-coin"></i>
-                <span>TOTAL BET</span>
-              </div>
-              <div className="d-flex align-items-center gap-2">
-                <div className="bet-icon">
-                  <i className="bi bi-cash-stack"></i>
-                </div>
-                <div className="bet-info">
-                  <span>TOTAL BET</span>
-                  <h2>₹{totalBet.toLocaleString()}</h2>
-                </div>
+                <div className="bet-icon"><i className="bi bi-cash-stack"></i></div>
+                <div className="bet-info"><span>TOTAL BET</span><h2>₹{totalBet.toLocaleString()}</h2></div>
               </div>
             </div>
-
             <div className="selector-body">
               <div className="bet-buttons">
                 {betOptions.map(amount => (
-                  <button
-                    key={amount}
-                    className={`bet-btn ${selectedAmount === amount ? 'active' : ''}`}
-                    onClick={() => setSelectedAmount(amount)}
-                    disabled={isBettingLocked || isResultDeclaredRef.current || isPlacingBet}
-                  >
+                  <button key={amount} className={`bet-btn ${selectedAmount === amount ? 'active' : ''}`} onClick={() => setSelectedAmount(amount)} disabled={isBettingLocked || !isRoundActive || isPlacingBet}>
                     ₹{amount}
                   </button>
                 ))}
               </div>
-
               <div className="selected-info" style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '20px' }}>
-                <button
-                  className='bet-button'
-                  onClick={handlePlaceBet}
-                  disabled={isBettingLocked || isResultDeclaredRef.current || isPlacingBet}
-                  style={{
-                    padding: '12px 40px',
-                    borderRadius: '50px',
-                    border: 'none',
-                    background: 'linear-gradient(135deg, #28a745, #20c997)',
-                    color: 'white',
-                    fontWeight: 'bold',
-                    opacity: (isBettingLocked || isResultDeclaredRef.current || isPlacingBet) ? 0.5 : 1
-                  }}
-                >
+                <button className='bet-button' onClick={handlePlaceBet} disabled={isBettingLocked || !isRoundActive || isPlacingBet} style={{ padding: '12px 40px', borderRadius: '50px', border: 'none', background: 'linear-gradient(135deg, #28a745, #20c997)', color: 'white', fontWeight: 'bold' }}>
                   {isPlacingBet ? '⏳ Placing Bets...' : '💰 Place Bet'}
                 </button>
               </div>
@@ -706,42 +604,63 @@ const Dashboard = () => {
           </div>
 
           {/* Toast Notification */}
-          {showToast && (
-            <div className="center-toast">
-              <div className="toast-content">{toastMessage}</div>
-            </div>
-          )}
+          {showToast && <div className="center-toast"><div className="toast-content">{toastMessage}</div></div>}
 
-          {/* Modals */}
+          {/* Last 10 Seconds Modal */}
           {showLast10Modal && (
-            <div className="modal-overlay">
-              <div className="modal-container modal-danger">
-                <div className="modal-header-custom">
-                  <i className="bi bi-alarm"></i>
-                  <h3>LAST 10 SECONDS!</h3>
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              background: 'rgba(0, 0, 0, 0.95)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 999999,
+              backdropFilter: 'blur(5px)'
+            }}>
+              <div style={{
+                background: 'linear-gradient(135deg, #2a1a1a, #1a0a0a)',
+                border: '3px solid #ff4444',
+                borderRadius: '20px',
+                padding: '30px',
+                minWidth: '320px',
+                textAlign: 'center'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '20px' }}>
+                  <i className="bi bi-alarm" style={{ fontSize: '48px', color: '#ff4444' }}></i>
+                  <h3 style={{ color: '#ff4444', margin: 0 }}>LAST 10 SECONDS!</h3>
                 </div>
-                <div className="modal-body-custom">
-                  <div className="countdown-timer">{last10TimeLeft}</div>
-                  <p>Betting Closed! Result coming soon...</p>
-                </div>
+                <div style={{ fontSize: '60px', fontWeight: 'bold', color: '#ff4444', margin: '20px 0' }}>{last10TimeLeft}</div>
+                <p style={{ color: 'white' }}>Betting Closed! Result coming soon...</p>
               </div>
             </div>
           )}
 
+          {/* Win/Lose Modal */}
           {showModal && (
             <div className="modal-overlay">
               <div className={`modal-container ${modalData.isWin ? 'modal-win' : 'modal-lose'}`}>
                 <div className="modal-header-custom">
                   {modalData.isWin ? <i className="bi bi-trophy-fill"></i> : <i className="bi bi-emoji-frown"></i>}
-                  <h3>{modalData.isWin ? 'YOU WIN!' : 'YOU LOSE'}</h3>
+                  <h3>{modalData.isWin ? '🎉 YOU WIN! 🎉' : '😢 YOU LOSE 😢'}</h3>
                 </div>
                 <div className="modal-body-custom">
                   <div className="winner-emoji">{modalData.icon?.emoji}</div>
                   <h4 className='text01'>{modalData.icon?.name}</h4>
+                  <div style={{ fontSize: '12px', color: '#888', marginBottom: '10px' }}>#{modalData.winningNumber}</div>
                   {modalData.isWin && (
-                    <div className="win-amount">+ ₹{modalData.amount}</div>
+                    <>
+                      <div style={{ fontSize: '16px', color: '#ccc', marginTop: '10px' }}>Bet Amount: ₹{modalData.betAmount}</div>
+                      <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#ffd700', margin: '10px 0' }}>+ ₹{modalData.amount}</div>
+                      <div style={{ fontSize: '14px', color: '#4ecdc4' }}>(9x Your Bet!)</div>
+                    </>
                   )}
-                  <p className='text01'>{modalData.isWin ? '🎉 9x Congratulations! You won big! 🎉' : '😢 Better luck next time! 😢'}</p>
+                  <p style={{ marginTop: '15px' }}>
+                    {modalData.isWin ? `🎉 Congratulations! You won ₹${modalData.amount}! 🎉` : `😢 Better luck next time! Winning number was ${modalData.icon?.name || modalData.winningNumber} 😢`}
+                  </p>
                 </div>
               </div>
             </div>
