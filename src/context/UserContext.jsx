@@ -95,7 +95,7 @@ export const UserProvider = ({ children }) => {
     localStorage.removeItem("regno");
     localStorage.removeItem("userData");
   };
-
+    
   useEffect(() => {
     if (user) {
       fetchData();

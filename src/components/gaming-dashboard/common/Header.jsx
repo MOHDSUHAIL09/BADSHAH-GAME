@@ -3,7 +3,6 @@ import { IoMdLogOut, IoMdNotifications, IoMdPerson, IoMdHelp, IoMdLock, IoMdMenu
 import { MdMessage, MdDashboard, MdPeople, MdAccountBalanceWallet } from 'react-icons/md';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useUser } from '../../../context/UserContext';
-import apiClient from '../../../api/apiClient';
 import toast from 'react-hot-toast';
 
 const Header = () => {
@@ -15,34 +14,30 @@ const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [profileImage, setProfileImage] = useState(null);
   
   const navigate = useNavigate();
   const location = useLocation();
   
-  // ✅ SINGLE useUser() call - Get all needed values
-  const { user, userData, logoutUser, refreshUserData } = useUser();
-  const token = localStorage.getItem('token'); // Token from localStorage
+  // Get user data from context
+  const { user, userData, logoutUser } = useUser();
 
   // Menu items with their paths
   const menuItems = [
     { name: 'Dashboard', path: '/dashboard', icon: <MdDashboard size={18} /> },
     { name: 'Referral Team', path: '/dashboard/referral', icon: <MdPeople size={18} /> },
-    { name: 'Add Funds', path: '/dashboard/add-funds', icon: <MdAccountBalanceWallet size={18} /> }
+    { name: 'Add Funds', path: '/dashboard/addfunds', icon: <MdAccountBalanceWallet size={18} /> }
   ];
 
-  // ✅ User data from API response
+  // User data from API response
   const userName = user?.profilename || user?.name || 'User';
   const userEmail = user?.email || '';
   const loginid = user?.loginid || user?.loginId || '';
-  const userMobile = user?.mobile || '';
-  const userRandomId = user?.randomid || '';
   
-  // ✅ Wallet balance from userData (dashboard API)
+  // Wallet balance from userData
   const currentBalance = userData?.currentamt || userData?.currentAmount || user?.totalamt || 0;
   
   // Default profile image
-  const userProfileImage = profileImage || "https://bootstrapdemos.adminmart.com/modernize/dist/assets/images/profile/user-1.jpg";
+  const userProfileImage = "https://bootstrapdemos.adminmart.com/modernize/dist/assets/images/profile/user-1.jpg";
 
   useEffect(() => {
     const handleScroll = () => {
@@ -72,74 +67,36 @@ const Header = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, [mobileMenuOpen]);
 
-  // Fetch notifications from API
+  // ✅ Static notifications (NO API CALL)
   useEffect(() => {
-    if (token) {
-      fetchNotifications();
-      fetchUserProfile();
-    }
-  }, [token]);
+    setNotifications([
+      { id: 1, message: 'Welcome to Badshah Game!', isRead: false, time: 'Just now', createdAt: new Date().toISOString() }
+    ]);
+    setUnreadCount(1);
+  }, []);
 
-  const fetchNotifications = async () => {
-    try {
-      const response = await apiClient.get('/Notification/get-notifications', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (response.data.success) {
-        setNotifications(response.data.data);
-        const unread = response.data.data.filter(n => !n.isRead).length;
-        setUnreadCount(unread);
-      }
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-      // Mock data if API fails
-      setNotifications([
-        { id: 1, message: 'Welcome to Badshah Game!', isRead: false, time: 'Just now', createdAt: new Date().toISOString() }
-      ]);
-      setUnreadCount(1);
-    }
+  // ✅ Mark notification as read (local only)
+  const markNotificationAsRead = (notificationId) => {
+    setNotifications(prev => 
+      prev.map(n => 
+        n.id === notificationId ? { ...n, isRead: true } : n
+      )
+    );
+    setUnreadCount(prev => Math.max(0, prev - 1));
+    toast.success('Notification marked as read');
   };
 
-  const fetchUserProfile = async () => {
-    try {
-      const response = await apiClient.get('/User/profile', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (response.data.success && response.data.data.profileImage) {
-        setProfileImage(response.data.data.profileImage);
-      }
-    } catch (error) {
-      console.error('Error fetching profile image:', error);
-    }
-  };
-
-  const markNotificationAsRead = async (notificationId) => {
-    try {
-      await apiClient.post(`/Notification/mark-read/${notificationId}`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      fetchNotifications(); // Refresh notifications
-    } catch (error) {
-      console.error('Error marking notification:', error);
-    }
-  };
-
-  const markAllNotificationsAsRead = async () => {
-    try {
-      await apiClient.post('/Notification/mark-all-read', {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      fetchNotifications();
-      toast.success('All notifications marked as read');
-    } catch (error) {
-      console.error('Error marking all:', error);
-    }
+  // ✅ Mark all notifications as read (local only)
+  const markAllNotificationsAsRead = () => {
+    setNotifications(prev => 
+      prev.map(n => ({ ...n, isRead: true }))
+    );
+    setUnreadCount(0);
+    toast.success('All notifications marked as read');
   };
 
   const handleLogout = () => {
-    logoutUser(); // Clear context
+    logoutUser();
     toast.success('Logged out successfully');
     navigate('/');
     setMobileMenuOpen(false);
@@ -183,7 +140,7 @@ const Header = () => {
           top: 0,
           zIndex: 1000,
           transition: 'all 0.3s ease',
-          background: isScrolled,
+          background: isScrolled ? 'rgba(0,0,0,0.95)' : 'rgba(0,0,0,0.8)',
           backdropFilter: 'blur(10px)',
           borderBottom: '1px solid rgba(255,255,255,0.1)',
         }}
@@ -201,7 +158,7 @@ const Header = () => {
               }}
               onClick={() => handleNavigation('/dashboard', 'Dashboard')}
             >
-              BADSHAH 
+              BADSHAH GAME
             </div>
 
             {/* Desktop Navigation */}
@@ -260,7 +217,7 @@ const Header = () => {
                 {mobileMenuOpen ? <IoMdClose size={20} /> : <IoMdMenu size={20} />}
               </button>
 
-              {/* Notification Dropdown */}
+              {/* Notification Dropdown - Static Data (No API) */}
               <div className="position-relative">
                 <button 
                   className="btn position-relative d-flex align-items-center gap-1"
@@ -435,7 +392,7 @@ const Header = () => {
                           </div>
                         </Link>
 
-                        {/* ✅ Wallet Balance - Using currentBalance */}
+                        {/* Wallet Balance */}
                         <div className="d-flex align-items-center px-4 py-2 mt-2">
                           <span className="d-flex align-items-center justify-content-center rounded-1 p-2 me-3" style={{ background: 'rgba(76, 175, 80, 0.2)', width: '35px', height: '35px' }}>
                             <MdAccountBalanceWallet size={18} color="#4caf50" />
@@ -475,7 +432,6 @@ const Header = () => {
                         <div className="ms-3">
                           <h6 className="mb-0" style={{ color: '#ffffff', fontSize: '14px', fontWeight: '600' }}>{userName}</h6>
                           {loginid && <span className="d-block" style={{ color: 'rgba(255,255,255,0.6)', fontSize: '11px' }}>ID: {loginid}</span>}
-                          {/* ✅ Mobile balance using currentBalance */}
                           <span className="d-block mt-1" style={{ color: '#4caf50', fontSize: '14px', fontWeight: 'bold' }}>
                             ₹{currentBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </span>

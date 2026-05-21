@@ -1,0 +1,708 @@
+/* ========== MAIN WRAPPER ========== */
+.addfunds-wrapper {
+  min-height: 100vh;
+  padding: 60px 0;
+  /* background: linear-gradient(135deg, #1e3325 0%, #343434 100%); */
+}
+
+/* ========== FORM CARD ========== */
+.funds-form-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border-radius: 32px;
+  padding: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+/* ========== HEADER ========== */
+.funds-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 35px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.funds-header h2 {
+  font-size: 28px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #ffd700, #ff8c00);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+}
+
+.balance-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+  padding: 10px 24px;
+  border-radius: 50px;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.balance-badge svg {
+  color: #ffd700;
+  font-size: 18px;
+}
+
+.balance-badge span {
+  color: #ffd700;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* ========== INPUT GROUPS ========== */
+.input-group-custom {
+  margin-bottom: 24px;
+}
+
+.input-group-custom label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+
+.input-icon {
+  color: #ffd700;
+  font-size: 14px;
+}
+
+.required {
+  color: #ff4444;
+  margin-left: 4px;
+}
+
+.input-group-custom input,
+.input-group-custom textarea {
+  width: 100%;
+  padding: 14px 18px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  color: #fff;
+  font-size: 15px;
+  transition: all 0.3s;
+}
+
+.input-group-custom input:focus,
+.input-group-custom textarea:focus {
+  outline: none;
+  border-color: #ffd700;
+  background: rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
+}
+
+.input-group-custom input.valid {
+  border-color: #4caf50;
+}
+
+.input-group-custom input.invalid {
+  border-color: #ff4444;
+}
+
+/* ========== INPUT HINTS ========== */
+.input-hint {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.input-hint.checking {
+  color: #ffc107;
+}
+
+.input-hint.success {
+  color: #ffc107;
+}
+
+.input-hint.error {
+  color: #ff4444;
+}
+
+/* ========== AMOUNT INPUT ========== */
+.amount-input {
+  position: relative;
+}
+
+.currency {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #ffd700;
+  font-weight: bold;
+  font-size: 18px;
+  z-index: 1;
+}
+
+.amount-input input {
+  padding-left: 38px;
+}
+
+/* ========== QUICK AMOUNTS ========== */
+.quick-amounts {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.quick-amount {
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 30px;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.quick-amount:hover {
+  background: rgba(255, 215, 0, 0.15);
+  border-color: #ffd700;
+  color: #ffd700;
+}
+
+.quick-amount.active {
+  background: linear-gradient(135deg, #ffd700, #ff8c00);
+  color: #000;
+  border-color: transparent;
+}
+
+/* ========== FIELD NOTES ========== */
+.field-note {
+  display: block;
+  margin-top: 8px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+
+/* ========== INFO NOTE BOX ========== */
+.info-note-box {
+  display: flex;
+  gap: 15px;
+  background: rgba(255, 193, 7, 0.08);
+  border-left: 3px solid #ffc107;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin: 25px 0;
+}
+
+.info-note-box svg {
+  color: #ffc107;
+  font-size: 20px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.info-note-box strong {
+  color: #ffc107;
+  font-size: 13px;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.info-note-box p {
+  margin: 6px 0;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* ========== SUBMIT BUTTON ========== */
+.submit-funds-btn {
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(135deg, #ffd700, #ff8c00);
+  border: none;
+  border-radius: 14px;
+  color: #000;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 15px;
+}
+
+.submit-funds-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
+}
+
+.submit-funds-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(0, 0, 0, 0.3);
+  border-top-color: #000;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ========== CUSTOM MODAL ========== */
+.custom-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999999;
+  backdrop-filter: blur(5px);
+}
+
+.custom-modal {
+  background: linear-gradient(135deg, #1a1a2e, #0f0f1a);
+  border-radius: 28px;
+  max-width: 450px;
+  width: 90%;
+  animation: modalSlideIn 0.3s ease;
+  border: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-header-custom {
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.modal-success-icon {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #4caf50, #2e7d32);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: white;
+  font-weight: bold;
+}
+
+.modal-header-custom h3 {
+  color: #fff;
+  font-size: 20px;
+  margin: 0;
+  flex: 1;
+  text-align: center;
+}
+
+.modal-close-custom {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 28px;
+  cursor: pointer;
+  transition: all 0.3s;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.modal-close-custom:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.modal-body-custom {
+  padding: 24px;
+}
+
+.modal-details {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.modal-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.modal-detail-row:last-child {
+  border-bottom: none;
+}
+
+.modal-detail-row span {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+}
+
+.modal-detail-row strong {
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  word-break: break-all;
+  flex: 1;
+  text-align: center;
+}
+
+.amount-highlight {
+  color: #ffd700 !important;
+  font-size: 18px !important;
+  font-weight: bold !important;
+}
+
+.status-badge {
+  background: rgba(255, 193, 7, 0.2);
+  color: #ffc107;
+  padding: 4px 12px;
+  border-radius: 30px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.modal-copy {
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: #ffd700;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 8px;
+  transition: all 0.3s;
+}
+
+.modal-copy:hover {
+  background: rgba(255, 215, 0, 0.2);
+}
+
+.modal-footer-custom {
+  margin-top: 20px;
+}
+
+.modal-btn-primary {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #ffd700, #ff8c00);
+  border: none;
+  border-radius: 14px;
+  color: #000;
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.modal-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(255, 215, 0, 0.3);
+}
+
+/* ========== RESPONSIVE DESIGN ========== */
+
+/* Tablet (768px - 991px) */
+@media (max-width: 991px) {
+  .addfunds-wrapper {
+    padding: 40px 0;
+  }
+  
+  .funds-form-card {
+    padding: 30px;
+  }
+  
+  .funds-header h2 {
+    font-size: 24px;
+  }
+  
+  .balance-badge {
+    padding: 8px 20px;
+  }
+  
+  .balance-badge span {
+    font-size: 16px;
+  }
+  
+  .quick-amount {
+    padding: 6px 14px;
+    font-size: 12px;
+  }
+}
+
+/* Mobile Landscape (576px - 767px) */
+@media (max-width: 767px) {
+  .addfunds-wrapper {
+    padding: 30px 0;
+  }
+  
+  .funds-form-card {
+    padding: 25px;
+    border-radius: 24px;
+  }
+  
+  .funds-header {
+    flex-direction: column;
+    text-align: center;
+    margin-bottom: 25px;
+  }
+  
+  .funds-header h2 {
+    font-size: 22px;
+  }
+  
+  .balance-badge {
+    padding: 8px 18px;
+  }
+  
+  .input-group-custom input {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+  
+  .quick-amounts {
+    gap: 8px;
+  }
+  
+  .quick-amount {
+    padding: 6px 12px;
+    font-size: 11px;
+  }
+  
+  .payment-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .payment-row span {
+    min-width: auto;
+  }
+  
+  .payment-row code {
+    font-size: 12px;
+    word-break: break-all;
+  }
+  
+  .info-note-box {
+    flex-direction: column;
+    padding: 15px;
+  }
+  
+  .submit-funds-btn {
+    padding: 14px;
+    font-size: 15px;
+  }
+  
+  /* Modal Responsive */
+  .modal-header-custom {
+    padding: 16px 20px;
+  }
+  
+  .modal-success-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+  
+  .modal-header-custom h3 {
+    font-size: 18px;
+  }
+  
+  .modal-body-custom {
+    padding: 20px;
+  }
+  
+  .modal-details {
+    padding: 15px;
+  }
+  
+  .modal-detail-row {
+    flex-direction: column;
+    text-align: center;
+    gap: 6px;
+  }
+  
+  .modal-detail-row strong {
+    text-align: center;
+  }
+  
+  .amount-highlight {
+    font-size: 16px !important;
+  }
+}
+
+/* Mobile Small (up to 375px) */
+@media (max-width: 480px) {
+  .addfunds-wrapper {
+    padding: 20px 0;
+  }
+  
+  .funds-form-card {
+    padding: 20px;
+    border-radius: 20px;
+  }
+  
+  .funds-header h2 {
+    font-size: 20px;
+  }
+  
+  .balance-badge {
+    padding: 6px 15px;
+  }
+  
+  .balance-badge svg {
+    font-size: 14px;
+  }
+  
+  .balance-badge span {
+    font-size: 14px;
+  }
+  
+  .input-group-custom label {
+    font-size: 13px;
+  }
+  
+  .input-group-custom input {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+  
+  .currency {
+    font-size: 16px;
+    left: 12px;
+  }
+  
+  .amount-input input {
+    padding-left: 32px;
+  }
+  
+  .quick-amount {
+    padding: 5px 10px;
+    font-size: 10px;
+  }
+  
+  .payment-row code {
+    font-size: 11px;
+    word-break: break-all;
+  }
+  
+  .info-note-box p {
+    font-size: 11px;
+  }
+  
+  .submit-funds-btn {
+    padding: 12px;
+    font-size: 14px;
+  }
+  
+  .custom-modal {
+    width: 95%;
+    border-radius: 20px;
+  }
+}
+
+/* Large Desktop (1200px+) */
+@media (min-width: 1200px) {
+  .addfunds-wrapper {
+    padding: 80px 0;
+  }
+  
+  .funds-form-card {
+    padding: 50px;
+  }
+  
+  .funds-header h2 {
+    font-size: 32px;
+  }
+  
+  .balance-badge span {
+    font-size: 20px;
+  }
+  
+  .input-group-custom input {
+    padding: 16px 20px;
+    font-size: 16px;
+  }
+  
+  .quick-amount {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+}
+
+/* Height-based responsive */
+@media (max-height: 700px) {
+  .addfunds-wrapper {
+    padding: 20px 0;
+  }
+  
+  .funds-form-card {
+    padding: 20px;
+  }
+  
+  .input-group-custom {
+    margin-bottom: 18px;
+  }
+  
+  .info-note-box {
+    margin: 18px 0;
+  }
+}
+
+/* Print styles (if needed) */
+@media print {
+  .addfunds-wrapper {
+    background: white;
+    padding: 20px;
+  }
+  
+  .funds-form-card {
+    background: white;
+    border: 1px solid #ddd;
+  }
+  
+  .submit-funds-btn {
+    display: none;
+  }
+}

@@ -17,7 +17,6 @@ const Dashboard = () => {
   const [betAmounts, setBetAmounts] = useState(Array(12).fill(0));
   const [previewAmounts, setPreviewAmounts] = useState(Array(12).fill(0));
   const [winnerIndex, setWinnerIndex] = useState(null);
-  const [winningAmount, setWinningAmount] = useState(0);
   const [resultHistory, setResultHistory] = useState([]);
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
@@ -31,8 +30,7 @@ const Dashboard = () => {
   const [gameId, setGameId] = useState('');
   const [isPlacingBet, setIsPlacingBet] = useState(false);
   const [isRoundActive, setIsRoundActive] = useState(true);
-  const [isUserDataLoaded, setIsUserDataLoaded] = useState(false);
-  const [dashboardApiCalled, setDashboardApiCalled] = useState(false); // Track if API called
+  const [roundGameId, setRoundGameId] = useState('');
 
   // ==================== REFS ====================
   const last10ModalShownRef = useRef(false);
@@ -41,9 +39,9 @@ const Dashboard = () => {
   const modalTimeoutRef = useRef(null);
   const toastTimeoutRef = useRef(null);
   const gameIdRef = useRef('');
-  const dashboardApiCalledRef = useRef(false); // Ref for API call tracking
+  const apiCallInProgressRef = useRef(false);
 
-  // ==================== GAME ITEMS (12 CARDS) ====================
+  // ==================== GAME ITEMS ====================
   const items = [
     { id: 0, name: 'Umbrella', emoji: '☂️', emojiCode: '1', value: 50, color: '#ff6b6b' },
     { id: 1, name: 'Ball', emoji: '⚽', emojiCode: '2', value: 45, color: '#4ecdc4' },
@@ -61,7 +59,7 @@ const Dashboard = () => {
 
   const betOptions = [10, 20, 50, 100, 500, 1000, 5000, 10000];
 
-  // ==================== LOCAL STORAGE FUNCTIONS ====================
+  // ==================== LOCAL STORAGE ====================
   const saveBetsToLocalStorage = (gameId, bets) => {
     const betData = {
       gameId: gameId,
@@ -70,20 +68,17 @@ const Dashboard = () => {
       totalAmount: bets.reduce((sum, b) => sum + b.amount, 0)
     };
     localStorage.setItem(`bets_${gameId}`, JSON.stringify(betData));
-    console.log("💾 Bets saved to localStorage for game:", gameId);
+    console.log("💾 Bets saved for game:", gameId);
   };
 
   const getBetsFromLocalStorage = (gameId) => {
     const data = localStorage.getItem(`bets_${gameId}`);
-    if (data) {
-      return JSON.parse(data);
-    }
-    return null;
+    return data ? JSON.parse(data) : null;
   };
 
-  // ==================== HELPER FUNCTIONS ====================
+  // ==================== HELPERS ====================
   const getAuthToken = () => localStorage.getItem('token') || '';
-  
+
   const showToastMessage = (message, isSuccess = true) => {
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
     setToastMessage(message);
@@ -92,55 +87,222 @@ const Dashboard = () => {
   };
 
   const formatSeconds = (seconds) => {
-    const secs = seconds % 60;
-    return secs.toString().padStart(2, '0');
+    if (seconds === null || seconds === undefined) return "00";
+    if (seconds < 0) return "00";
+    if (seconds < 10) return `0${seconds}`;
+    return `${seconds}`;
   };
 
-  // ==================== DASHBOARD API CALL AT LAST 10 SECONDS ====================
-  const callDashboardAPIAtLast10Seconds = async () => {
-    if (dashboardApiCalledRef.current) {
-      console.log("⏭️ Dashboard API already called for this round");
-      return;
-    }
-    
-    console.log("🔄 Calling Dashboard API at last 10 seconds...", new Date().toLocaleTimeString());
-    dashboardApiCalledRef.current = true;
-    setDashboardApiCalled(true);
-    
-    try {
-      await forceRefresh(); // Call the context method
-      console.log("✅ Dashboard API call completed - Balance updated");
-    } catch (error) {
-      console.error("❌ Dashboard API call failed:", error);
-    }
-  };
-
-  // ==================== LAST 10 SECONDS MODAL WITH API CALL ====================
+  // ==================== LAST 10 SECONDS MODAL ====================
   const showLast10SecondsModal = () => {
     if (last10ModalShownRef.current) return;
-    console.log("🔔 Last 10 seconds! Calling Dashboard API...");
+    console.log("🔔 LAST 10 SECONDS! Opening modal...");
     last10ModalShownRef.current = true;
     setIsBettingLocked(true);
     setLast10TimeLeft(10);
     setShowLast10Modal(true);
-    
-    // ✅ Call Dashboard API immediately when last 10 seconds start
-    callDashboardAPIAtLast10Seconds();
-    
+
     const countdownInterval = setInterval(() => {
       setLast10TimeLeft(prev => {
-        if (prev <= 1) {
+        const newTime = prev - 1;
+        console.log("⏰ Modal countdown:", newTime);
+        
+        if (newTime <= 0) {
           clearInterval(countdownInterval);
+          setShowLast10Modal(false);
+          last10ModalShownRef.current = false;
           return 0;
         }
-        return prev - 1;
+        return newTime;
       });
     }, 1000);
-    
-    setTimeout(() => {
-      setShowLast10Modal(false);
-    }, 10000);
   };
+
+  // ==================== RESET ROUND ====================
+  const resetRound = () => {
+    console.log("🔄 Resetting round");
+    setBetAmounts(Array(12).fill(0));
+    setPreviewAmounts(Array(12).fill(0));
+    setTotalBet(0);
+    setWinnerIndex(null);
+    setCurrentIcon(null);
+    setIsBettingLocked(false);
+    isResultDeclaredRef.current = false;
+    last10ModalShownRef.current = false;
+    setShowLast10Modal(false);
+    setIsRoundActive(true);
+    setRoundGameId('');
+  };
+
+  // ==================== CHECK WINNING RESULT ====================
+  const checkWinningResult = async () => {
+    try {
+      const token = getAuthToken();
+      const response = await apiClient.get('/Trading/game-result', {
+        params: { PageIndex: 1, PageSize: 50 },
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.data?.success) {
+        const results = response.data.data?.data || [];
+        const currentGameId = roundGameId || gameIdRef.current;
+        console.log("🔍 Checking result for gameId:", currentGameId);
+        
+        if (!currentGameId) return null;
+
+        const myGameResult = results.find(r => r.gameid == currentGameId);
+        console.log("📊 Found result:", myGameResult);
+        
+        if (!myGameResult) return null;
+
+        const winningNumber = myGameResult.betnumber;
+        console.log("🏆 Winning Number:", winningNumber);
+        
+        if (!winningNumber) return null;
+
+        const savedBets = getBetsFromLocalStorage(currentGameId);
+        console.log("📦 Saved bets:", savedBets);
+        
+        let isWin = false;
+        let winAmount = 0;
+        let userBetAmount = 0;
+        const winningIndex = items.findIndex(item => item.emojiCode === winningNumber);
+        const winningIcon = winningIndex !== -1 ? items[winningIndex] : null;
+
+        const hasUserPlacedBet = savedBets && savedBets.bets && savedBets.bets.length > 0;
+
+        if (savedBets && savedBets.bets) {
+          const matchedBet = savedBets.bets.find(bet => bet.betNumber === winningNumber);
+          if (matchedBet) {
+            isWin = true;
+            userBetAmount = matchedBet.amount;
+            winAmount = userBetAmount * 9;
+            console.log("🎉 WIN! Amount:", winAmount);
+            showToastMessage(`🎉 You won ₹${winAmount}!`, true);
+            setTimeout(() => refreshData(), 500);
+          } else if (hasUserPlacedBet) {
+            console.log("😢 LOSE!");
+            showToastMessage(`😢 Winning number was ${winningIcon?.name || winningNumber}`, false);
+          }
+        }
+
+        setWinnerIndex(winningIndex);
+        setCurrentIcon(winningIcon);
+
+        if (hasUserPlacedBet) {
+          console.log("🎯 Showing result modal");
+          setModalData({
+            isWin,
+            amount: winAmount,
+            icon: winningIcon,
+            betAmount: userBetAmount,
+            winningNumber: winningNumber
+          });
+          setShowModal(true);
+
+          setTimeout(() => setWinnerIndex(null), 3000);
+          if (modalTimeoutRef.current) clearTimeout(modalTimeoutRef.current);
+          modalTimeoutRef.current = setTimeout(() => {
+            setShowModal(false);
+          }, 4000);
+        }
+
+        await fetchGameResults();
+        return { isWin, winAmount };
+      }
+      return null;
+    } catch (error) {
+      console.error('Check Result Error:', error);
+      return null;
+    }
+  };
+
+  // ==================== DECLARE RESULT ====================
+  const declareResult = async () => {
+    if (isResultDeclaredRef.current) return;
+    console.log("🎯 DECLARE RESULT CALLED");
+    isResultDeclaredRef.current = true;
+    setIsRoundActive(false);
+    if (timerRef.current) clearInterval(timerRef.current);
+
+    const result = await checkWinningResult();
+    if (!result) {
+      const savedBets = getBetsFromLocalStorage(roundGameId || gameIdRef.current);
+      const hasUserPlacedBet = savedBets && savedBets.bets && savedBets.bets.length > 0;
+
+      if (hasUserPlacedBet) {
+        console.log("🎲 No API result, showing random result modal");
+        const randomWinner = Math.floor(Math.random() * items.length);
+        const winningIcon = items[randomWinner];
+        const winnerBet = betAmounts[randomWinner];
+        const winAmount = winnerBet * 9;
+        setModalData({
+          isWin: winnerBet > 0,
+          amount: winAmount,
+          icon: winningIcon,
+          betAmount: winnerBet,
+          winningNumber: winningIcon.emojiCode
+        });
+        setShowModal(true);
+        setTimeout(() => setWinnerIndex(null), 3000);
+        if (modalTimeoutRef.current) clearTimeout(modalTimeoutRef.current);
+        modalTimeoutRef.current = setTimeout(() => {
+          setShowModal(false);
+        }, 4000);
+      }
+    }
+  };
+
+  
+  // ==================== TIMER COUNTDOWN ====================
+  useEffect(() => {
+    if (timeLeft <= 0) {
+      console.log("🚨 TIMER REACHED 0!");
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      
+      if (!apiCallInProgressRef.current) {
+        apiCallInProgressRef.current = true;
+        
+        declareResult();
+        
+        setTimeout(() => {
+          forceRefresh();
+        }, 500);
+        
+        setTimeout(() => {
+          apiCallInProgressRef.current = false;
+          resetRound();
+        }, 3000);
+      }
+      return;
+    }
+
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+    
+    timerRef.current = setInterval(() => {
+      setTimeLeft(prev => {
+        const newTime = prev - 1;
+        
+        if (newTime === 10 && !last10ModalShownRef.current && !isResultDeclaredRef.current) {
+          showLast10SecondsModal();
+        }
+        
+        return newTime;
+      });
+    }, 1000);
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [timeLeft]);
 
   // ==================== API CALLS ====================
   const addBidToAPI = async (pid, totalDebitAmount, betNumbersString, perbitAmountsString, game, gameType, gameId, accType) => {
@@ -155,9 +317,7 @@ const Dashboard = () => {
         gameId: String(gameId),
         accType: String("PLAYGAME")
       };
-      console.log("📤 Sending bet to API:", requestBody);
       const response = await apiClient.post('/Trading/AddBid', requestBody);
-      console.log("📥 API Response:", response.data);
       return response.data;
     } catch (error) {
       console.error('AddBid Error:', error);
@@ -170,7 +330,7 @@ const Dashboard = () => {
       const token = getAuthToken();
       const response = await apiClient.get('/Trading/game-result', {
         params: { PageIndex: 1, PageSize: 5 },
-        headers: { 'Accept': '*/*', 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.data?.success) {
         const results = response.data.data?.data || [];
@@ -189,122 +349,6 @@ const Dashboard = () => {
     }
   };
 
-  // ==================== CHECK WINNING RESULT ====================
-  const checkWinningResult = async () => {
-    try {
-      const token = getAuthToken();
-      const response = await apiClient.get('/Trading/game-result', {
-        params: { PageIndex: 1, PageSize: 50 },
-        headers: { 'Accept': '*/*', 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (response.data?.success) {
-        const results = response.data.data?.data || [];       
-        const currentGameId = gameIdRef.current;     
-        if (!currentGameId) {     
-          return null;
-        }       
-        const myGameResult = results.find(r => r.gameid === currentGameId);       
-        if (!myGameResult) {      
-          return null;
-        }       
-        const winningNumber = myGameResult.betnumber;
-        console.log("🏆 Winning Number:", winningNumber);
-        
-        if (!winningNumber || winningNumber === null) {
-          console.log("⏳ Game result not ready yet (betnumber is null)");
-          return null;
-        }
-        
-        const savedBets = getBetsFromLocalStorage(currentGameId);
-        console.log("📦 Saved bets:", savedBets);
-        let isWin = false;
-        let winAmount = 0;
-        let userBetAmount = 0;
-        const winningIndex = items.findIndex(item => item.emojiCode === winningNumber);
-        const winningIcon = winningIndex !== -1 ? items[winningIndex] : null;
-        
-        if (savedBets && savedBets.bets) {
-          const matchedBet = savedBets.bets.find(bet => bet.betNumber === winningNumber);
-          if (matchedBet) {
-            isWin = true;
-            userBetAmount = matchedBet.amount;
-            winAmount = userBetAmount * 9;
-            console.log("🎉 WIN! Bet matched");
-            showToastMessage(`🎉 You won ₹${winAmount}! (9x)`, true);
-            setTimeout(() => refreshData(), 500);
-          } else {
-            console.log("😢 LOSE! No bet on", winningNumber);
-            showToastMessage(`😢 Winning number was ${winningIcon?.name || winningNumber}`, false);
-          }
-        }
-        
-        setWinnerIndex(winningIndex);
-        setCurrentIcon(winningIcon);
-        setModalData({ 
-          isWin, 
-          amount: winAmount, 
-          icon: winningIcon, 
-          betAmount: userBetAmount,
-          winningNumber: winningNumber
-        });
-        setShowModal(true);
-        await fetchGameResults();
-        
-        setTimeout(() => setWinnerIndex(null), 3000);
-        if (modalTimeoutRef.current) clearTimeout(modalTimeoutRef.current);
-        modalTimeoutRef.current = setTimeout(() => {
-          setShowModal(false);
-          startNewRound();
-        }, 4000);
-        
-        return { isWin, winAmount };
-      }
-      return null;
-    } catch (error) {
-      console.error('Check Result Error:', error);
-      return null;
-    }
-  };
-
-  // ==================== START NEW ROUND ====================
-  const startNewRound = () => {
-    console.log("========== STARTING NEW ROUND ==========");
-    
-    setBetAmounts(Array(12).fill(0));
-    setPreviewAmounts(Array(12).fill(0));
-    setTotalBet(0);
-    setWinnerIndex(null);
-    setCurrentIcon(null);
-    setIsBettingLocked(false);
-    isResultDeclaredRef.current = false;
-    last10ModalShownRef.current = false;
-    dashboardApiCalledRef.current = false; // ✅ Reset API call flag for new round
-    setDashboardApiCalled(false);
-    setShowLast10Modal(false);
-    setTimeLeft(60);
-    setIsRoundActive(true);
-    
-    if (timerRef.current) clearInterval(timerRef.current);
-    
-    timerRef.current = setInterval(() => {
-      setTimeLeft(prev => {
-        // ✅ When timer hits 10 seconds, show modal and call API
-        if (prev === 11 && !last10ModalShownRef.current && !isResultDeclaredRef.current) {
-          showLast10SecondsModal();
-        }
-        if (prev <= 1) {
-          clearInterval(timerRef.current);
-          if (!isResultDeclaredRef.current) {
-            declareResult();
-          }
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
-
   // ==================== BET PLACEMENT ====================
   const handlePlaceBet = async () => {
     if (isBettingLocked) {
@@ -316,13 +360,13 @@ const Dashboard = () => {
       return;
     }
     if (isPlacingBet) {
-      showToastMessage('⏳ Please wait, placing bets...', false);
+      showToastMessage('⏳ Please wait...', false);
       return;
     }
 
     const hasPreview = previewAmounts.some(amount => amount > 0);
     if (!hasPreview) {
-      showToastMessage('⚠️ Please select at least one card first!', false);
+      showToastMessage('⚠️ Please select at least one card!', false);
       return;
     }
 
@@ -341,8 +385,6 @@ const Dashboard = () => {
 
     const totalPreviewAmount = previewAmounts.reduce((sum, amount) => sum + amount, 0);
     const currentWallet = userData?.currentamt || 0;
-    const betNumbersString = selectedBets.map(bet => bet.betNumber).join(',');
-    const perbitAmountsString = selectedBets.map(bet => bet.amount).join(',');
 
     if (currentWallet < totalPreviewAmount) {
       showToastMessage(`⚠️ Insufficient balance! Need ₹${totalPreviewAmount}`, false);
@@ -352,8 +394,9 @@ const Dashboard = () => {
     setIsPlacingBet(true);
     try {
       const currentGameId = gameIdRef.current || gameId;
-      console.log("🎮 Placing bet for game ID:", currentGameId);
-      
+      const betNumbersString = selectedBets.map(bet => bet.betNumber).join(',');
+      const perbitAmountsString = selectedBets.map(bet => bet.amount).join(',');
+
       const result = await addBidToAPI(
         Number(userData?.pid) || 1,
         totalPreviewAmount,
@@ -362,23 +405,14 @@ const Dashboard = () => {
         "1",
         "A",
         String(currentGameId),
-
-
-        
         "Play Game"
       );
-      
+
       if (result?.success) {
-        const betsToSave = selectedBets.map(bet => ({
-          betNumber: bet.betNumber,
-          amount: bet.amount,
-          name: bet.name,
-          emoji: bet.emoji
-        }));
-        
-        saveBetsToLocalStorage(currentGameId, betsToSave);
+        setRoundGameId(currentGameId);
+        saveBetsToLocalStorage(currentGameId, selectedBets);
         gameIdRef.current = currentGameId;
-        
+
         const newBetAmounts = [...betAmounts];
         let totalDeduction = 0;
         for (const bet of selectedBets) {
@@ -386,7 +420,7 @@ const Dashboard = () => {
           totalDeduction += bet.amount;
         }
         setBetAmounts(newBetAmounts);
-        setTotalBet(totalBet + totalDeduction);
+        setTotalBet(prev => prev + totalDeduction);
         setPreviewAmounts(Array(12).fill(0));
         setTimeout(() => refreshData(), 1000);
         showToastMessage(`✅ ${selectedBets.length} bets placed! Total: ₹${totalDeduction}`, true);
@@ -400,55 +434,38 @@ const Dashboard = () => {
     setIsPlacingBet(false);
   };
 
-  // ==================== DECLARE RESULT ====================
-  const declareResult = async () => {
-    if (isResultDeclaredRef.current) return;
-    isResultDeclaredRef.current = true;
-    setIsRoundActive(false);
-    
-    const result = await checkWinningResult();
-    if (!result) {
-      const randomWinner = Math.floor(Math.random() * items.length);
-      const winningIcon = items[randomWinner];
-      const winnerBet = betAmounts[randomWinner];
-      const winAmount = winnerBet * 9;
-      setModalData({
-        isWin: winnerBet > 0,
-        amount: winAmount,
-        icon: winningIcon,
-        betAmount: winnerBet,
-        winningNumber: winningIcon.emojiCode
-      });
-      setShowModal(true);
-      setTimeout(() => setWinnerIndex(null), 3000);
-      if (modalTimeoutRef.current) clearTimeout(modalTimeoutRef.current);
-      modalTimeoutRef.current = setTimeout(() => {
-        setShowModal(false);
-        startNewRound();
-      }, 4000);
-    }
-  };
-
-  // ==================== SYNC TIMER AND GAME ID FROM API ====================
+  // ==================== SYNC USERDATA ====================
   useEffect(() => {
     if (userData) {
-      if (userData.seconds) {
-        setTimeLeft(userData.seconds);
-      }
+      console.log("📡 USERDATA UPDATED:", {
+        gameid: userData.gameid,
+        seconds: userData.seconds,
+        currentamt: userData.currentamt
+      });
+
       if (userData.gameid) {
         setGameId(userData.gameid);
         gameIdRef.current = userData.gameid;
-        setIsUserDataLoaded(true);
-        console.log("🎮 Game ID synced from API:", userData.gameid);
+      }
+
+      if (userData.seconds !== undefined && userData.seconds !== null && userData.seconds > 0) {
+        setTimeLeft(userData.seconds);
       }
     }
   }, [userData]);
 
   // ==================== INITIALIZE ====================
-  useEffect(() => {
+  useEffect(() => { 
+    console.log("🚀 INITIALIZING DASHBOARD");
     fetchGameResults();
-    startNewRound();
     const interval = setInterval(fetchGameResults, 20000);
+    
+    if (userData?.seconds && userData.seconds > 0) {
+      setTimeLeft(userData.seconds);
+    } else {
+      setTimeLeft(60);
+    }
+    
     return () => {
       clearInterval(interval);
       if (timerRef.current) clearInterval(timerRef.current);
@@ -459,36 +476,33 @@ const Dashboard = () => {
 
   // ==================== UI HANDLERS ====================
   const handleCardClick = (index) => {
-    if (isBettingLocked) {
-      showToastMessage('⛔ Betting closed! Last 10 seconds remaining!', false);
+    if (isBettingLocked || !isRoundActive || isPlacingBet) {
+      if (isBettingLocked) showToastMessage('⛔ Betting closed!', false);
       return;
     }
-    if (!isRoundActive) {
-      showToastMessage('⏳ Round ended! Next round starting soon...', false);
-      return;
-    }
+
     if (previewAmounts[index] > 0) {
       const newPreviewAmounts = [...previewAmounts];
       newPreviewAmounts[index] = 0;
       setPreviewAmounts(newPreviewAmounts);
-      showToastMessage(`✨ Preview removed from ${items[index].name}`, false);
+      showToastMessage(`✨ Removed from ${items[index].name}`, false);
     } else {
       const newPreviewAmounts = [...previewAmounts];
       newPreviewAmounts[index] = selectedAmount;
       setPreviewAmounts(newPreviewAmounts);
-      showToastMessage(`✨ ₹${selectedAmount} preview on ${items[index].name}!`, true);
+      showToastMessage(`✨ ₹${selectedAmount} on ${items[index].name}!`, true);
     }
   };
 
-  // ==================== RENDER UI ====================
+  // ==================== RENDER ====================
   return (
     <div className='game-container'>
       <div className="animated-bg"></div>
       <div className="particles"></div>
       <div className="container py-4">
         <div className="container">
-          
-          {/* Wallet Cards - Shows Updated Balance */}
+
+          {/* Wallet Cards */}
           <div className="row g-3 mb-4">
             <div className="col-12">
               <div className="wallet-card-new d-flex align-items-center justify-content-between flex-wrap gap-3">
@@ -499,13 +513,15 @@ const Dashboard = () => {
                     <h2 className="mb-0">₹{(userData?.currentamt || 0).toLocaleString('en-IN')}</h2>
                   </div>
                 </div>
+
                 <div className="d-flex align-items-center gap-3">
-                  <div className="wallet-icon"><i className="bi bi-wallet2"></i></div>
+                  <div className="wallet-icon"><i className="bi bi-cash-stack"></i></div>
                   <div className="wallet-info">
-                    <span style={{ color: "#FFF" }}>BETTING AMOUNT</span>
-                    <h2 className="mb-0" style={{ color: "#ffd700" }}>₹{(userData?.totbettingamt || 0).toLocaleString('en-IN')}</h2>
+                    <span style={{ color: "#FFF" }}>TOTAL BET</span>
+                    <h2 className="mb-0" style={{ color: "#ffd700" }}>₹{totalBet.toLocaleString('en-IN')}</h2>
                   </div>
                 </div>
+
                 <Link to="/dashboard/withdraw">
                   <button className="btn btn-warning fw-bold py-2 px-4" style={{ borderRadius: '12px', background: 'linear-gradient(135deg, #ffd700, #ff8c00)', border: 'none' }}>
                     💸 PayOut
@@ -533,7 +549,7 @@ const Dashboard = () => {
                         <span>{formatSeconds(timeLeft)}</span>
                       </div>
                       <div className="timer-digits-box">
-                        <span>GAME ID: {gameId || 'LOADING'}</span>
+                        <span>GAME ID: {gameId || userData?.gameid || 'LOADING'}</span>
                       </div>
                     </div>
                   </div>
@@ -562,7 +578,7 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Game Grid - 12 Cards */}
+          {/* Game Grid */}
           <div className="game-grid-card">
             <div className="grid-header">
               <div className="header-left"><i className="bi bi-grid-3x3-gap-fill"></i><span>SELECT YOUR BET</span></div>
@@ -614,43 +630,35 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Toast Notification */}
+          {/* Toast */}
           {showToast && <div className="center-toast"><div className="toast-content">{toastMessage}</div></div>}
 
-          {/* Last 10 Seconds Modal - Dashboard API Call happens here */}
+          {/* Last 10 Seconds Modal */}
           {showLast10Modal && (
-            <div style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              background: 'rgba(0, 0, 0, 0.95)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 999999,
-              backdropFilter: 'blur(5px)'
-            }}>
-              <div style={{
-                background: 'linear-gradient(135deg, #2a1a1a, #1a0a0a)',
-                border: '3px solid #ff4444',
-                borderRadius: '20px',
-                padding: '30px',
-                minWidth: '320px',
-                textAlign: 'center'
-              }}>
+            <div className="modal-overlay">
+              <div className="last10-modal-content">
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '20px' }}>
                   <i className="bi bi-alarm" style={{ fontSize: '48px', color: '#ff4444' }}></i>
                   <h3 style={{ color: '#ff4444', margin: 0 }}>LAST 10 SECONDS!</h3>
                 </div>
-                <div style={{ fontSize: '60px', fontWeight: 'bold', color: '#ff4444', margin: '20px 0' }}>{last10TimeLeft}</div>
+                <div className="last10-timer">{last10TimeLeft}</div>
+                <div style={{
+                  width: '100%',
+                  height: '8px',
+                  background: 'rgba(255,255,255,0.2)',
+                  borderRadius: '4px',
+                  margin: '20px 0',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    width: `${(last10TimeLeft / 10) * 100}%`,
+                    height: '100%',
+                    background: '#ff4444',
+                    borderRadius: '4px',
+                    transition: 'width 1s linear'
+                  }}></div>
+                </div>
                 <p style={{ color: 'white' }}>Betting Closed! Result coming soon...</p>
-                {dashboardApiCalled && (
-                  <p style={{ color: '#4caf50', fontSize: '12px', marginTop: '10px' }}>
-                    ✅ Balance updated
-                  </p>
-                )}
               </div>
             </div>
           )}

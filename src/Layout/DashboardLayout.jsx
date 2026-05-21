@@ -5,6 +5,7 @@ import Withdraw from '../pages/dashboard/withdraw/Withdraw';
 import WithdrawReport from '../pages/dashboard/withdraw/WithdrawReport';
 import Referral from '../pages/dashboard/referral/Referral';
 import Profile from '../pages/dashboard/profile/profile/Profile';
+import AddFund from '../pages/dashboard/addfund/AddFund';
 
 function DashboardLayout() {
   return (
@@ -20,6 +21,7 @@ function DashboardLayout() {
         <Route path='/withdrawreport' element={<WithdrawReport/>} />
         <Route path='/referral' element={<Referral/>} />
         <Route path='/profile' element={<Profile/>} />
+        <Route path='/addfund' element={<AddFund/>} />
       </Routes>
     </div>
      </div>
