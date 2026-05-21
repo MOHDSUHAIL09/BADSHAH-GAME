@@ -1,58 +1,147 @@
-import React, { useState } from 'react'
-import toast, { Toaster } from 'react-hot-toast'
-import './Profile.css'
-import { FaGift } from 'react-icons/fa'
+import React, { useState, useEffect } from 'react';
+import toast, { Toaster } from 'react-hot-toast';
+import './Profile.css';
+import { FaGift } from 'react-icons/fa';
+import apiClient from '../../../../api/apiClient';
+import { useUser } from '../../../../context/UserContext';
 
 const Profile = () => {
-  const [loading, setLoading] = useState(false)
-  const [paymentMethod, setPaymentMethod] = useState('UPI')
+  const { user, token } = useUser(); // Context se user data lo
+  const [loading, setLoading] = useState(false);
+  const [fetchLoading, setFetchLoading] = useState(true);
+  const [paymentMethod, setPaymentMethod] = useState('UPI');
   const [profileData, setProfileData] = useState({
-    name: 'John Doe',
-    mobile: '9876543210',
-    email: 'john@example.com',
-    upiId: 'john@okhdfcbank',
-    accountNo: '123456789012',
-    ifsc: 'HDFC0001234',
-    holderName: 'John Doe',
-    branch: 'Mumbai Main',
+    name: '',
+    mobile: '',
+    email: '',
+    upiId: '',
+    accountNo: '',
+    ifsc: '',
+    holderName: '',
+    branch: '',
     qrImage: null
-  })
+  });
+
+  // ✅ Load Profile Data from API
+  useEffect(() => {
+    fetchProfileData();
+  }, []);
+
+  const fetchProfileData = async () => {
+    try {
+      const response = await apiClient.get('/User/profile', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (response.data.success) {
+        const userData = response.data.data;
+        setProfileData({
+          name: userData.profilename || userData.name || '',
+          mobile: userData.mobile || '',
+          email: userData.email || '',
+          upiId: userData.upiId || userData.upiid || '',
+          accountNo: userData.Accountno || userData.accountNo || '',
+          ifsc: userData.Ifsccode || userData.ifsc || '',
+          holderName: userData.holdername || userData.holderName || '',
+          branch: userData.branch || '',
+          qrImage: null
+        });
+        
+        // Agar payment method saved hai to set karo
+        if (userData.paymentMethod) {
+          setPaymentMethod(userData.paymentMethod);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      toast.error('Failed to load profile data');
+    } finally {
+      setFetchLoading(false);
+    }
+  };
 
   const handleChange = (e) => {
-    const { name, value } = e.target
+    const { name, value } = e.target;
     setProfileData(prev => ({
       ...prev,
       [name]: value
-    }))
-  }
+    }));
+  };
 
   const handleFileChange = (e) => {
-    const file = e.target.files[0]
+    const file = e.target.files[0];
     if (file) {
       if (!file.type.startsWith('image/')) {
-        toast.error('Please upload an image file')
-        return
+        toast.error('Please upload an image file');
+        return;
       }
       if (file.size > 5 * 1024 * 1024) {
-        toast.error('File size should be less than 5MB')
-        return
+        toast.error('File size should be less than 5MB');
+        return;
       }
       setProfileData(prev => ({
         ...prev,
         qrImage: file
-      }))
-      toast.success('QR code uploaded successfully')
+      }));
+      toast.success('QR code uploaded successfully');
     }
-  }
+  };
 
-  const handleUpdateProfile = () => {
-    setLoading(true)
+  // ✅ Update Profile API Call
+  const handleUpdateProfile = async () => {
+    setLoading(true);
     
-    // Simulate update delay
-    setTimeout(() => {
-      toast.success('Profile updated successfully!')
-      setLoading(false)
-    }, 1000)
+    try {
+      const formDataToSend = new FormData();
+      formDataToSend.append('name', profileData.name);
+      formDataToSend.append('email', profileData.email);
+      formDataToSend.append('mobile', profileData.mobile);
+      formDataToSend.append('paymentMethod', paymentMethod);
+      
+      if (paymentMethod === 'UPI') {
+        formDataToSend.append('upiId', profileData.upiId);
+        if (profileData.qrImage) {
+          formDataToSend.append('qrImage', profileData.qrImage);
+        }
+      } else {
+        formDataToSend.append('accountNo', profileData.accountNo);
+        formDataToSend.append('ifsc', profileData.ifsc);
+        formDataToSend.append('holderName', profileData.holderName);
+        formDataToSend.append('branch', profileData.branch);
+      }
+      
+      const response = await apiClient.put('/User/update-profile', formDataToSend, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      if (response.data.success) {
+        toast.success('Profile updated successfully!');
+        // Refresh profile data
+        fetchProfileData();
+      } else {
+        toast.error(response.data.message || 'Update failed');
+      }
+    } catch (error) {
+      console.error('Update error:', error);
+      toast.error(error.response?.data?.message || 'Failed to update profile');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (fetchLoading) {
+    return (
+      <div className="container py-4">
+        <div className="text-center">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -68,18 +157,6 @@ const Profile = () => {
             fontSize: '14px',
             borderRadius: '12px',
             padding: '12px 20px',
-          },
-          success: {
-            style: {
-              background: 'linear-gradient(135deg, #28a745, #20c997)',
-              color: '#fff',
-            },
-          },
-          error: {
-            style: {
-              background: 'linear-gradient(135deg, #dc3545, #c82333)',
-              color: '#fff',
-            },
           },
         }}
         containerStyle={{
@@ -116,7 +193,6 @@ const Profile = () => {
                 onChange={handleChange}
                 className="form-control custom-input"
                 placeholder="Enter Mobile No"
-                readOnly
               />
             </div>
           </div>
@@ -239,7 +315,7 @@ const Profile = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Profile
+export default Profile;

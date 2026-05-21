@@ -175,7 +175,6 @@ const Withdraw = () => {
           <div className="col-12 col-md-6">
             <div className="balance-card">
               <span className="card-label">Payoutable Amount</span>
-              {/* ✅ Fixed: userData?.currentamt || 0 */}
               <h2 className="payoutable-amount">₹{(userData?.currentAmount || 0).toFixed(2)}</h2>
             </div>
           </div>

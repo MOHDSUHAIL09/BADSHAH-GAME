@@ -13,7 +13,6 @@ const Referral = () => {
           <h2>Referral Link</h2>
           <FaGift className="gift-icon" />
         </div>
-
         <div className="referral-body">
 
           {/* Referral Link Box */}

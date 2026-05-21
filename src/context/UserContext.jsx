@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, useContext } from "react";
+import { createContext, useState, useEffect, useContext, useRef } from "react";
 import apiClient from "../api/apiClient";
 
 const UserContext = createContext();
@@ -42,8 +42,9 @@ export const UserProvider = ({ children }) => {
         return;
       }
 
+      console.log("🔄 Fetching dashboard data at:", new Date().toLocaleTimeString());
       const res = await apiClient.get(`/Dashboard/dashboard/${regno}`);
-      console.log("Dashboard-Api", res);
+      console.log("Dashboard-Api Response:", res.data);
       
       if (res.data.success) {
         const apiData = res.data.data;
@@ -54,11 +55,14 @@ export const UserProvider = ({ children }) => {
           seconds: apiData.seconds,
           totbettingamt: apiData.totbettingamt || 0,
           debit: apiData.debit,
-          regNo: regno,
+          WinnerNumber: apiData.WinnerNumber,
         };
          
         setUserData(newUserData);
         localStorage.setItem("userData", JSON.stringify(newUserData));
+        
+        // Dispatch event for other components
+        window.dispatchEvent(new CustomEvent('userDataUpdated', { detail: newUserData }));
       }
     } catch (error) {
       console.error("Dashboard Fetch Error:", error);
@@ -67,22 +71,17 @@ export const UserProvider = ({ children }) => {
     }
   };
 
-  // ================= REFRESH USER DATA =================
-  const refreshUserData = () => {
-    const savedData = localStorage.getItem("userData");
-    if (savedData) {
-      const parsed = JSON.parse(savedData);
-      setUserData(parsed);
-      return parsed;
-    }
-    return userData;
+  // ================= FORCE REFRESH (Called at last 10 seconds) =================
+  const forceRefresh = async () => {
+    console.log("🔄 Force refresh called at last 10 seconds");
+    await fetchData();
   };
 
   // ================= LOGIN =================
   const loginUser = (userData, token) => {
     localStorage.setItem("user", JSON.stringify(userData));
     localStorage.setItem("token", token);
-    localStorage.setItem("regno", userData.regno || userData.RegNo);
+    localStorage.setItem("regno", userData.regno || userData.RegNo || userData.randomid);
     setUser(userData);
     setTimeout(() => fetchData(), 100);
   };
@@ -110,7 +109,7 @@ export const UserProvider = ({ children }) => {
         userData,
         loading,
         refreshData: fetchData,
-        refreshUserData,
+        forceRefresh, // New method for last 10 seconds
         loginUser,
         logoutUser
       }}
@@ -120,4 +119,4 @@ export const UserProvider = ({ children }) => {
   );
 };
 
-export const useUser = () => useContext(UserContext); 
+export const useUser = () => useContext(UserContext);

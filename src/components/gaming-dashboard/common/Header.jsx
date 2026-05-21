@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { IoMdLogOut, IoMdNotifications, IoMdPerson, IoMdHelp, IoMdLock, IoMdMenu, IoMdClose } from 'react-icons/io';
-import { MdMessage, MdDashboard, MdShare, MdPeople, MdAccountBalanceWallet } from 'react-icons/md';
+import { MdMessage, MdDashboard, MdPeople, MdAccountBalanceWallet } from 'react-icons/md';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useUser } from '../../../context/UserContext';
+import apiClient from '../../../api/apiClient';
+import toast from 'react-hot-toast';
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -10,8 +13,16 @@ const Header = () => {
   const [mobileProfileDropdownOpen, setMobileProfileDropdownOpen] = useState(false);
   const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [profileImage, setProfileImage] = useState(null);
+  
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // ✅ SINGLE useUser() call - Get all needed values
+  const { user, userData, logoutUser, refreshUserData } = useUser();
+  const token = localStorage.getItem('token'); // Token from localStorage
 
   // Menu items with their paths
   const menuItems = [
@@ -19,6 +30,19 @@ const Header = () => {
     { name: 'Referral Team', path: '/dashboard/referral', icon: <MdPeople size={18} /> },
     { name: 'Add Funds', path: '/dashboard/add-funds', icon: <MdAccountBalanceWallet size={18} /> }
   ];
+
+  // ✅ User data from API response
+  const userName = user?.profilename || user?.name || 'User';
+  const userEmail = user?.email || '';
+  const loginid = user?.loginid || user?.loginId || '';
+  const userMobile = user?.mobile || '';
+  const userRandomId = user?.randomid || '';
+  
+  // ✅ Wallet balance from userData (dashboard API)
+  const currentBalance = userData?.currentamt || userData?.currentAmount || user?.totalamt || 0;
+  
+  // Default profile image
+  const userProfileImage = profileImage || "https://bootstrapdemos.adminmart.com/modernize/dist/assets/images/profile/user-1.jpg";
 
   useEffect(() => {
     const handleScroll = () => {
@@ -48,19 +72,79 @@ const Header = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, [mobileMenuOpen]);
 
-  // User data (replace with actual context)
-  const userName = "John Doe";
-  const userEmail = "john.doe@example.com";
-  const loginid = "JOHN123";
-  const userProfileImage = "https://bootstrapdemos.adminmart.com/modernize/dist/assets/images/profile/user-1.jpg";
+  // Fetch notifications from API
+  useEffect(() => {
+    if (token) {
+      fetchNotifications();
+      fetchUserProfile();
+    }
+  }, [token]);
+
+  const fetchNotifications = async () => {
+    try {
+      const response = await apiClient.get('/Notification/get-notifications', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (response.data.success) {
+        setNotifications(response.data.data);
+        const unread = response.data.data.filter(n => !n.isRead).length;
+        setUnreadCount(unread);
+      }
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      // Mock data if API fails
+      setNotifications([
+        { id: 1, message: 'Welcome to Badshah Game!', isRead: false, time: 'Just now', createdAt: new Date().toISOString() }
+      ]);
+      setUnreadCount(1);
+    }
+  };
+
+  const fetchUserProfile = async () => {
+    try {
+      const response = await apiClient.get('/User/profile', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (response.data.success && response.data.data.profileImage) {
+        setProfileImage(response.data.data.profileImage);
+      }
+    } catch (error) {
+      console.error('Error fetching profile image:', error);
+    }
+  };
+
+  const markNotificationAsRead = async (notificationId) => {
+    try {
+      await apiClient.post(`/Notification/mark-read/${notificationId}`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchNotifications(); // Refresh notifications
+    } catch (error) {
+      console.error('Error marking notification:', error);
+    }
+  };
+
+  const markAllNotificationsAsRead = async () => {
+    try {
+      await apiClient.post('/Notification/mark-all-read', {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchNotifications();
+      toast.success('All notifications marked as read');
+    } catch (error) {
+      console.error('Error marking all:', error);
+    }
+  };
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('userData');
+    logoutUser(); // Clear context
+    toast.success('Logged out successfully');
     navigate('/');
     setMobileMenuOpen(false);
     setMobileProfileDropdownOpen(false);
+    setProfileDropdownOpen(false);
   };
 
   const handleNavigation = (path, menuName) => {
@@ -69,10 +153,29 @@ const Header = () => {
     setMobileMenuOpen(false);
   };
 
+  // Format time function
+  const formatTime = (timeStr) => {
+    if (!timeStr) return '';
+    try {
+      const date = new Date(timeStr);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+      
+      if (diffMins < 1) return 'Just now';
+      if (diffMins < 60) return `${diffMins} min ago`;
+      if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+      return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    } catch {
+      return timeStr;
+    }
+  };
+
   return (
     <>
       {/* Main Header */}
-      
       <div 
         className={`header01 ${isScrolled ? 'scrolled01' : ''}`}
         style={{
@@ -87,7 +190,7 @@ const Header = () => {
       >
         <div className="container">
           <div className="d-flex justify-content-between align-items-center px-3 py-2">
-            {/* Logo - Link to Dashboard */}
+            {/* Logo */}
             <div 
               className="text-logo fw-bold fs-3"
               style={{ 
@@ -98,10 +201,10 @@ const Header = () => {
               }}
               onClick={() => handleNavigation('/dashboard', 'Dashboard')}
             >
-              BADSHAH
+              BADSHAH 
             </div>
 
-            {/* Desktop Navigation Menu */}
+            {/* Desktop Navigation */}
             <ul className="d-none d-md-flex gap-2 mb-0" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
               {menuItems.map((item) => (
                 <li key={item.name}>
@@ -171,14 +274,16 @@ const Header = () => {
                   onClick={() => setNotificationDropdownOpen(!notificationDropdownOpen)}
                 >
                   <IoMdNotifications size={18} />
-                  <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style={{ fontSize: '10px' }}>
-                    3
-                  </span>
+                  {unreadCount > 0 && (
+                    <span className="position-absolute start-100 translate-middle badge rounded-pill bg-danger" style={{ fontSize: '10px', marginLeft: "-6px", marginTop: "3px" }}>
+                      {unreadCount}
+                    </span>
+                  )}
                 </button>
 
                 {notificationDropdownOpen && (
                   <>
-                    <div className="position-fixed inset-0" style={{ top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 }} onClick={() => setNotificationDropdownOpen(false)} />
+                    <div className="position-fixed" style={{ top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 }} onClick={() => setNotificationDropdownOpen(false)} />
                     <div className="dropdown-menu show" style={{
                       position: 'absolute',
                       top: '100%',
@@ -190,27 +295,71 @@ const Header = () => {
                       border: '1px solid rgba(255,255,255,0.1)',
                       borderRadius: '12px',
                       zIndex: 1000,
+                      maxHeight: '400px',
+                      overflowY: 'auto',
                     }}>
-                      <div className="py-3 px-4 border-bottom" style={{ borderBottomColor: 'rgba(255,255,255,0.1)' }}>
+                      <div className="py-3 px-4 border-bottom d-flex justify-content-between align-items-center" style={{ borderBottomColor: 'rgba(255,255,255,0.1)' }}>
                         <h5 className="mb-0" style={{ color: '#ffffff', fontSize: '16px', fontWeight: '600' }}>Notifications</h5>
+                        {unreadCount > 0 && (
+                          <button 
+                            onClick={markAllNotificationsAsRead}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#4caf50',
+                              fontSize: '12px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Mark all read
+                          </button>
+                        )}
                       </div>
                       <div className="message-body">
-                        <div className="py-3 px-4 d-flex align-items-center" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                          <span className="d-flex align-items-center justify-content-center rounded-1 p-2" style={{ background: 'rgba(255,255,255,0.1)' }}>
-                            <MdMessage color="#ffffff" size={18} />
-                          </span>
-                          <div className="w-100 ps-3">
-                            <h6 className="mb-1" style={{ color: '#ffffff', fontSize: '13px', fontWeight: '500' }}>New message received</h6>
-                            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>2 min ago</span>
+                        {notifications.length > 0 ? (
+                          notifications.map((notification) => (
+                            <div 
+                              key={notification.id} 
+                              className="py-3 px-4 d-flex align-items-start" 
+                              style={{ 
+                                borderBottom: '1px solid rgba(255,255,255,0.05)',
+                                background: notification.isRead ? 'transparent' : 'rgba(76, 175, 80, 0.1)',
+                                cursor: !notification.isRead ? 'pointer' : 'default'
+                              }}
+                              onClick={() => {
+                                if (!notification.isRead) {
+                                  markNotificationAsRead(notification.id);
+                                }
+                              }}
+                            >
+                              <span className="d-flex align-items-center justify-content-center rounded-1 p-2" style={{ background: 'rgba(255,255,255,0.1)', minWidth: '35px' }}>
+                                <MdMessage color="#ffffff" size={18} />
+                              </span>
+                              <div className="w-100 ps-3">
+                                <h6 className="mb-1" style={{ color: '#ffffff', fontSize: '13px', fontWeight: notification.isRead ? '400' : '600' }}>
+                                  {notification.message}
+                                </h6>
+                                <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>
+                                  {formatTime(notification.time || notification.createdAt)}
+                                </span>
+                              </div>
+                              {!notification.isRead && (
+                                <span style={{ width: '8px', height: '8px', background: '#4caf50', borderRadius: '50%', marginTop: '8px' }}></span>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-center py-5">
+                            <p style={{ color: 'rgba(255,255,255,0.6)' }}>No notifications</p>
                           </div>
-                        </div>
+                        )}
                       </div>
                     </div>
                   </>
                 )}
               </div>
 
-              {/* Profile Dropdown - Desktop */}
+              {/* Desktop Profile Dropdown */}
               <div className="position-relative d-none d-md-block">
                 <button 
                   className="btn d-flex align-items-center gap-2"
@@ -245,11 +394,13 @@ const Header = () => {
                         <img src={userProfileImage} className="rounded-circle" width="60" height="60" alt="profile" style={{ objectFit: 'cover' }} />
                         <div className="ms-3">
                           <h5 className="mb-1" style={{ color: '#ffffff', fontSize: '16px', fontWeight: '600' }}>{userName}</h5>
-                          {loginid && <span className="mb-1 d-block" style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px' }}>Login Id: {loginid}</span>}
-                          <p className="mb-0 d-flex align-items-center gap-2" style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>
-                            <MdMessage size={12} />
-                            <span>{userEmail}</span>
-                          </p>
+                          {loginid && <span className="mb-1 d-block" style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px' }}>Login ID: {loginid}</span>}
+                          {userEmail && (
+                            <p className="mb-0 d-flex align-items-center gap-2" style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>
+                              <MdMessage size={12} />
+                              <span>{userEmail}</span>
+                            </p>
+                          )}     
                         </div>
                       </div>
                       
@@ -260,7 +411,7 @@ const Header = () => {
                           </span>
                           <div>
                             <h6 className="mb-0" style={{ fontSize: '16px', fontWeight: '500' }}>My Profile</h6>
-                            <span className="mt-1 d-block" style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>Update profile</span>
+                            <span className="mt-1 d-block" style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>View and edit profile</span>
                           </div>
                         </Link>
 
@@ -270,7 +421,7 @@ const Header = () => {
                           </span>
                           <div>
                             <h6 className="mb-0" style={{ fontSize: '16px', fontWeight: '500' }}>Change Password</h6>
-                            <span className="mt-1 d-block" style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>Forget password</span>
+                            <span className="mt-1 d-block" style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>Update your password</span>
                           </div>
                         </Link>
 
@@ -280,9 +431,22 @@ const Header = () => {
                           </span>
                           <div>
                             <h6 className="mb-0" style={{ fontSize: '14px', fontWeight: '500' }}>Support</h6>
-                            <span className="mt-1 d-block" style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>Get help & support</span>
+                            <span className="mt-1 d-block" style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>24/7 customer support</span>
                           </div>
                         </Link>
+
+                        {/* ✅ Wallet Balance - Using currentBalance */}
+                        <div className="d-flex align-items-center px-4 py-2 mt-2">
+                          <span className="d-flex align-items-center justify-content-center rounded-1 p-2 me-3" style={{ background: 'rgba(76, 175, 80, 0.2)', width: '35px', height: '35px' }}>
+                            <MdAccountBalanceWallet size={18} color="#4caf50" />
+                          </span>
+                          <div>
+                            <h6 className="mb-0" style={{ fontSize: '14px', fontWeight: '500', color: '#ffffff' }}>Wallet Balance</h6>
+                            <span className="mt-1 d-block" style={{ fontSize: '18px', fontWeight: 'bold', color: '#4caf50' }}>
+                              ₹{currentBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                       
                       <div className="p-3">
@@ -296,7 +460,7 @@ const Header = () => {
                 )}
               </div>
 
-              {/* Mobile Profile Dropdown */}
+              {/* Mobile Profile Button */}
               <div className="position-relative d-md-none">
                 <button className="btn" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '30px', padding: '5px 8px' }} onClick={() => setMobileProfileDropdownOpen(!mobileProfileDropdownOpen)}>
                   <img src={userProfileImage} className="rounded-circle" width="28" height="28" alt="profile" style={{ objectFit: 'cover' }} />
@@ -311,6 +475,10 @@ const Header = () => {
                         <div className="ms-3">
                           <h6 className="mb-0" style={{ color: '#ffffff', fontSize: '14px', fontWeight: '600' }}>{userName}</h6>
                           {loginid && <span className="d-block" style={{ color: 'rgba(255,255,255,0.6)', fontSize: '11px' }}>ID: {loginid}</span>}
+                          {/* ✅ Mobile balance using currentBalance */}
+                          <span className="d-block mt-1" style={{ color: '#4caf50', fontSize: '14px', fontWeight: 'bold' }}>
+                            ₹{currentBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </span>
                         </div>
                       </div>
                       <div className="py-2">
@@ -342,7 +510,7 @@ const Header = () => {
         </div>
       </div>
 
-      {/* Mobile Menu Overlay */}
+      {/* Mobile Menu Sidebar */}
       {mobileMenuOpen && (
         <>
           <div className="position-fixed" style={{ top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1001 }} onClick={() => setMobileMenuOpen(false)} />
@@ -351,6 +519,9 @@ const Header = () => {
               <img src={userProfileImage} className="rounded-circle" width="50" height="50" alt="profile" style={{ objectFit: 'cover' }} />
               <div className="ms-3">
                 <h6 className="mb-0" style={{ color: '#ffffff', fontSize: '16px' }}>{userName}</h6>
+                <span className="d-block mt-1" style={{ color: '#4caf50', fontSize: '14px', fontWeight: 'bold' }}>
+                  ₹{currentBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </span>
               </div>
             </div>
 
@@ -370,6 +541,8 @@ const Header = () => {
                     fontWeight: activeMenu === item.name ? '600' : '400',
                     cursor: 'pointer',
                     transition: 'all 0.3s ease',
+                    display: 'flex',
+                    alignItems: 'center',
                   }}
                 >
                   {item.icon}

@@ -9,7 +9,7 @@ import apiClient from '../../api/apiClient';
 
 const Dashboard = () => {
   // ==================== USER CONTEXT ====================
-  const { userData, refreshData } = useUser();
+  const { userData, refreshData, forceRefresh } = useUser();
 
   // ==================== STATE VARIABLES ====================
   const [totalBet, setTotalBet] = useState(0);
@@ -19,7 +19,6 @@ const Dashboard = () => {
   const [winnerIndex, setWinnerIndex] = useState(null);
   const [winningAmount, setWinningAmount] = useState(0);
   const [resultHistory, setResultHistory] = useState([]);
-  const [gameResults, setGameResults] = useState([]);
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -33,6 +32,7 @@ const Dashboard = () => {
   const [isPlacingBet, setIsPlacingBet] = useState(false);
   const [isRoundActive, setIsRoundActive] = useState(true);
   const [isUserDataLoaded, setIsUserDataLoaded] = useState(false);
+  const [dashboardApiCalled, setDashboardApiCalled] = useState(false); // Track if API called
 
   // ==================== REFS ====================
   const last10ModalShownRef = useRef(false);
@@ -40,7 +40,8 @@ const Dashboard = () => {
   const isResultDeclaredRef = useRef(false);
   const modalTimeoutRef = useRef(null);
   const toastTimeoutRef = useRef(null);
-  const gameIdRef = useRef('');  // ✅ ADDED - for persistent gameId
+  const gameIdRef = useRef('');
+  const dashboardApiCalledRef = useRef(false); // Ref for API call tracking
 
   // ==================== GAME ITEMS (12 CARDS) ====================
   const items = [
@@ -93,6 +94,52 @@ const Dashboard = () => {
   const formatSeconds = (seconds) => {
     const secs = seconds % 60;
     return secs.toString().padStart(2, '0');
+  };
+
+  // ==================== DASHBOARD API CALL AT LAST 10 SECONDS ====================
+  const callDashboardAPIAtLast10Seconds = async () => {
+    if (dashboardApiCalledRef.current) {
+      console.log("⏭️ Dashboard API already called for this round");
+      return;
+    }
+    
+    console.log("🔄 Calling Dashboard API at last 10 seconds...", new Date().toLocaleTimeString());
+    dashboardApiCalledRef.current = true;
+    setDashboardApiCalled(true);
+    
+    try {
+      await forceRefresh(); // Call the context method
+      console.log("✅ Dashboard API call completed - Balance updated");
+    } catch (error) {
+      console.error("❌ Dashboard API call failed:", error);
+    }
+  };
+
+  // ==================== LAST 10 SECONDS MODAL WITH API CALL ====================
+  const showLast10SecondsModal = () => {
+    if (last10ModalShownRef.current) return;
+    console.log("🔔 Last 10 seconds! Calling Dashboard API...");
+    last10ModalShownRef.current = true;
+    setIsBettingLocked(true);
+    setLast10TimeLeft(10);
+    setShowLast10Modal(true);
+    
+    // ✅ Call Dashboard API immediately when last 10 seconds start
+    callDashboardAPIAtLast10Seconds();
+    
+    const countdownInterval = setInterval(() => {
+      setLast10TimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(countdownInterval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    setTimeout(() => {
+      setShowLast10Modal(false);
+    }, 10000);
   };
 
   // ==================== API CALLS ====================
@@ -152,39 +199,25 @@ const Dashboard = () => {
       });
       
       if (response.data?.success) {
-        const results = response.data.data?.data || [];
-        console.log("📊 API Results:", results.map(r => ({ gameid: r.gameid, betnumber: r.betnumber })));
-        
-        // ✅ Use ref for persistent gameId
-        const currentGameId = gameIdRef.current;
-        console.log("🎮 Current Game ID from ref:", currentGameId);
-        
-        if (!currentGameId) {
-          console.log("No game ID in ref");
+        const results = response.data.data?.data || [];       
+        const currentGameId = gameIdRef.current;     
+        if (!currentGameId) {     
           return null;
-        }
-        
-        // ✅ Find result for EXACT same game ID
-        const myGameResult = results.find(r => r.gameid === currentGameId);
-        
-        if (!myGameResult) {
-          console.log(`⏳ No entry found for game ${currentGameId} yet`);
+        }       
+        const myGameResult = results.find(r => r.gameid === currentGameId);       
+        if (!myGameResult) {      
           return null;
-        }
-        
+        }       
         const winningNumber = myGameResult.betnumber;
         console.log("🏆 Winning Number:", winningNumber);
         
-        // ✅ Wait until betnumber has a real value
         if (!winningNumber || winningNumber === null) {
           console.log("⏳ Game result not ready yet (betnumber is null)");
           return null;
         }
         
-        // ✅ Get bets from localStorage
         const savedBets = getBetsFromLocalStorage(currentGameId);
         console.log("📦 Saved bets:", savedBets);
-        
         let isWin = false;
         let winAmount = 0;
         let userBetAmount = 0;
@@ -246,6 +279,8 @@ const Dashboard = () => {
     setIsBettingLocked(false);
     isResultDeclaredRef.current = false;
     last10ModalShownRef.current = false;
+    dashboardApiCalledRef.current = false; // ✅ Reset API call flag for new round
+    setDashboardApiCalled(false);
     setShowLast10Modal(false);
     setTimeLeft(60);
     setIsRoundActive(true);
@@ -254,6 +289,7 @@ const Dashboard = () => {
     
     timerRef.current = setInterval(() => {
       setTimeLeft(prev => {
+        // ✅ When timer hits 10 seconds, show modal and call API
         if (prev === 11 && !last10ModalShownRef.current && !isResultDeclaredRef.current) {
           showLast10SecondsModal();
         }
@@ -326,7 +362,10 @@ const Dashboard = () => {
         "1",
         "A",
         String(currentGameId),
-        "PLAYGAME"
+
+
+        
+        "Play Game"
       );
       
       if (result?.success) {
@@ -359,31 +398,6 @@ const Dashboard = () => {
       showToastMessage('❌ API Error!', false);
     }
     setIsPlacingBet(false);
-  };
-
-  // ==================== LAST 10 SECONDS MODAL ====================
-  const showLast10SecondsModal = () => {
-    if (last10ModalShownRef.current) return;
-    console.log("🔔 Last 10 seconds!");
-    last10ModalShownRef.current = true;
-    setIsBettingLocked(true);
-    setLast10TimeLeft(10);
-    setShowLast10Modal(true);
-    
-    const countdownInterval = setInterval(() => {
-      setLast10TimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(countdownInterval);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    
-    setTimeout(() => {
-      setShowLast10Modal(false);
-      last10ModalShownRef.current = false;
-    }, 10000);
   };
 
   // ==================== DECLARE RESULT ====================
@@ -474,7 +488,7 @@ const Dashboard = () => {
       <div className="container py-4">
         <div className="container">
           
-          {/* Wallet Cards */}
+          {/* Wallet Cards - Shows Updated Balance */}
           <div className="row g-3 mb-4">
             <div className="col-12">
               <div className="wallet-card-new d-flex align-items-center justify-content-between flex-wrap gap-3">
@@ -482,14 +496,14 @@ const Dashboard = () => {
                   <div className="wallet-icon"><i className="bi bi-wallet2"></i></div>
                   <div className="wallet-info">
                     <span>WALLET BALANCE</span>
-                    <h2 className="mb-0">₹{(userData?.currentamt || 0)}</h2>
+                    <h2 className="mb-0">₹{(userData?.currentamt || 0).toLocaleString('en-IN')}</h2>
                   </div>
                 </div>
                 <div className="d-flex align-items-center gap-3">
                   <div className="wallet-icon"><i className="bi bi-wallet2"></i></div>
                   <div className="wallet-info">
                     <span style={{ color: "#FFF" }}>BETTING AMOUNT</span>
-                    <h2 className="mb-0" style={{ color: "#ffd700" }}>₹{(userData?.totbettingamt || 0)}</h2>
+                    <h2 className="mb-0" style={{ color: "#ffd700" }}>₹{(userData?.totbettingamt || 0).toLocaleString('en-IN')}</h2>
                   </div>
                 </div>
                 <Link to="/dashboard/withdraw">
@@ -603,7 +617,7 @@ const Dashboard = () => {
           {/* Toast Notification */}
           {showToast && <div className="center-toast"><div className="toast-content">{toastMessage}</div></div>}
 
-          {/* Last 10 Seconds Modal */}
+          {/* Last 10 Seconds Modal - Dashboard API Call happens here */}
           {showLast10Modal && (
             <div style={{
               position: 'fixed',
@@ -632,6 +646,11 @@ const Dashboard = () => {
                 </div>
                 <div style={{ fontSize: '60px', fontWeight: 'bold', color: '#ff4444', margin: '20px 0' }}>{last10TimeLeft}</div>
                 <p style={{ color: 'white' }}>Betting Closed! Result coming soon...</p>
+                {dashboardApiCalled && (
+                  <p style={{ color: '#4caf50', fontSize: '12px', marginTop: '10px' }}>
+                    ✅ Balance updated
+                  </p>
+                )}
               </div>
             </div>
           )}
