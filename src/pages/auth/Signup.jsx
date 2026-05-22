@@ -626,41 +626,6 @@ const Signup = () => {
             </div>
           </div>
 
-          {/* Password */}
-          <div 
-            className="detail-row02"
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '12px 0',
-              borderBottom: '1px solid rgba(255,255,255,0.1)'
-            }}
-          >
-            <div className="detail-label02" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'rgba(255,255,255,0.8)', fontSize: '14px' }}>
-              <FaUser /> Password:
-            </div>
-            <div className="detail-value02" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#ff9800', fontWeight: 'bold', fontSize: '14px' }}>
-              {registeredUser.password}
-              <button 
-                onClick={() => handleCopy(registeredUser.password, "Password")}
-                style={{
-                  background: 'rgba(76,175,80,0.2)',
-                  border: '1px solid rgba(76,175,80,0.3)',
-                  borderRadius: '8px',
-                  padding: '5px 10px',
-                  cursor: 'pointer',
-                  color: '#4caf50',
-                  transition: 'all 0.3s ease'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(76,175,80,0.4)'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(76,175,80,0.2)'}
-              >
-                {copiedField === "Password" ? <FaCheck /> : <FaCopy />}
-              </button>
-            </div>
-          </div>
-
           {/* Name */}
           <div 
             className="detail-row02"
@@ -711,41 +676,6 @@ const Signup = () => {
                 onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(76,175,80,0.2)'}
               >
                 {copiedField === "Email" ? <FaCheck /> : <FaCopy />}
-              </button>
-            </div>
-          </div>
-
-          {/* Mobile */}
-          <div 
-            className="detail-row02"
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '12px 0',
-              borderBottom: '1px solid rgba(255,255,255,0.1)'
-            }}
-          >
-            <div className="detail-label02" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'rgba(255,255,255,0.8)', fontSize: '14px' }}>
-              <FaUser /> Mobile:
-            </div>
-            <div className="detail-value02" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#fff', fontSize: '14px' }}>
-              {registeredUser.mobile}
-              <button 
-                onClick={() => handleCopy(registeredUser.mobile, "Mobile")}
-                style={{
-                  background: 'rgba(76,175,80,0.2)',
-                  border: '1px solid rgba(76,175,80,0.3)',
-                  borderRadius: '8px',
-                  padding: '5px 10px',
-                  cursor: 'pointer',
-                  color: '#4caf50',
-                  transition: 'all 0.3s ease'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(76,175,80,0.4)'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(76,175,80,0.2)'}
-              >
-                {copiedField === "Mobile" ? <FaCheck /> : <FaCopy />}
               </button>
             </div>
           </div>
