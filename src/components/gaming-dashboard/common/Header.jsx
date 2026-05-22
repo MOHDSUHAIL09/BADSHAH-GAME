@@ -15,10 +15,10 @@ const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  
+
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   // Get user data from context
   const { user, userData, logoutUser } = useUser();
 
@@ -27,18 +27,18 @@ const Header = () => {
     { name: 'Dashboard', path: '/dashboard', icon: <MdDashboard size={18} /> },
     { name: 'Referral Team', path: '/dashboard/referral', icon: <MdPeople size={18} /> },
     { name: 'Add Funds', path: '/dashboard/addfund', icon: <MdAccountBalanceWallet size={18} /> },
-    {name: 'PayOut',path: '/dashboard/withdraw',icon: <GiCash size={18} /> }
-    
+    { name: 'PayOut', path: '/dashboard/withdraw', icon: <GiCash size={18} /> }
+
   ];
 
   // User data from API response
   const userName = user?.profilename || user?.name || 'User';
   const userEmail = user?.email || '';
   const loginid = user?.loginid || user?.loginId || '';
-  
+
   // Wallet balance from userData
   const currentBalance = userData?.currentamt || userData?.currentAmount || user?.totalamt || 0;
-  
+
   // Default profile image
   const userProfileImage = "https://bootstrapdemos.adminmart.com/modernize/dist/assets/images/profile/user-1.jpg";
 
@@ -80,8 +80,8 @@ const Header = () => {
 
   // ✅ Mark notification as read (local only)
   const markNotificationAsRead = (notificationId) => {
-    setNotifications(prev => 
-      prev.map(n => 
+    setNotifications(prev =>
+      prev.map(n =>
         n.id === notificationId ? { ...n, isRead: true } : n
       )
     );
@@ -91,7 +91,7 @@ const Header = () => {
 
   // ✅ Mark all notifications as read (local only)
   const markAllNotificationsAsRead = () => {
-    setNotifications(prev => 
+    setNotifications(prev =>
       prev.map(n => ({ ...n, isRead: true }))
     );
     setUnreadCount(0);
@@ -123,7 +123,7 @@ const Header = () => {
       const diffMins = Math.floor(diffMs / 60000);
       const diffHours = Math.floor(diffMs / 3600000);
       const diffDays = Math.floor(diffMs / 86400000);
-      
+
       if (diffMins < 1) return 'Just now';
       if (diffMins < 60) return `${diffMins} min ago`;
       if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
@@ -136,14 +136,14 @@ const Header = () => {
   return (
     <>
       {/* Main Header */}
-      <div 
+      <div
         className={`header01 ${isScrolled ? 'scrolled01' : ''}`}
         style={{
           position: 'sticky',
           top: 0,
           zIndex: 1000,
           transition: 'all 0.3s ease',
-          background: isScrolled ,
+          background: isScrolled,
           backdropFilter: 'blur(10px)',
           borderBottom: '1px solid rgba(255,255,255,0.1)',
         }}
@@ -151,9 +151,9 @@ const Header = () => {
         <div className="container">
           <div className="d-flex justify-content-between align-items-center px-3 py-2">
             {/* Logo */}
-            <div 
+            <div
               className="text-logo fw-bold fs-3"
-              style={{ 
+              style={{
                 cursor: 'pointer',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
@@ -201,11 +201,11 @@ const Header = () => {
                 </li>
               ))}
             </ul>
-            
+
             {/* Right Side Buttons */}
             <div className="d-flex gap-2 align-items-center">
               {/* Mobile Menu Button */}
-              <button 
+              <button
                 className="d-md-none btn"
                 style={{
                   background: 'rgba(255,255,255,0.1)',
@@ -221,7 +221,7 @@ const Header = () => {
 
               {/* Notification Dropdown - Static Data (No API) */}
               <div className="position-relative">
-                <button 
+                <button
                   className="btn position-relative d-flex align-items-center gap-1"
                   style={{
                     background: 'rgba(255,255,255,0.1)',
@@ -247,9 +247,9 @@ const Header = () => {
                       position: 'absolute',
                       top: '100%',
                       right: 0,
-                      width: '320px',
+                      width: '310px',
                       marginTop: '10px',
-                      background: 'rgba(0,0,0,0.95)',
+                      background: 'rgb(23, 53, 32)',
                       backdropFilter: 'blur(10px)',
                       border: '1px solid rgba(255,255,255,0.1)',
                       borderRadius: '12px',
@@ -260,7 +260,7 @@ const Header = () => {
                       <div className="py-3 px-4 border-bottom d-flex justify-content-between align-items-center" style={{ borderBottomColor: 'rgba(255,255,255,0.1)' }}>
                         <h5 className="mb-0" style={{ color: '#ffffff', fontSize: '16px', fontWeight: '600' }}>Notifications</h5>
                         {unreadCount > 0 && (
-                          <button 
+                          <button
                             onClick={markAllNotificationsAsRead}
                             style={{
                               background: 'transparent',
@@ -277,10 +277,10 @@ const Header = () => {
                       <div className="message-body">
                         {notifications.length > 0 ? (
                           notifications.map((notification) => (
-                            <div 
-                              key={notification.id} 
-                              className="py-3 px-4 d-flex align-items-start" 
-                              style={{ 
+                            <div
+                              key={notification.id}
+                              className="py-3 px-4 d-flex align-items-start"
+                              style={{
                                 borderBottom: '1px solid rgba(255,255,255,0.05)',
                                 background: notification.isRead ? 'transparent' : 'rgba(76, 175, 80, 0.1)',
                                 cursor: !notification.isRead ? 'pointer' : 'default'
@@ -320,7 +320,7 @@ const Header = () => {
 
               {/* Desktop Profile Dropdown */}
               <div className="position-relative d-none d-md-block">
-                <button 
+                <button
                   className="btn d-flex align-items-center gap-2"
                   style={{
                     background: 'rgba(255,255,255,0.1)',
@@ -359,10 +359,10 @@ const Header = () => {
                               <MdMessage size={12} />
                               <span>{userEmail}</span>
                             </p>
-                          )}     
+                          )}
                         </div>
                       </div>
-                      
+
                       <div className="py-2">
                         <Link to="/dashboard/profile" className="d-flex align-items-center px-4 py-2" style={{ textDecoration: 'none', color: 'rgba(255,255,255,0.8)' }} onClick={() => setProfileDropdownOpen(false)}>
                           <span className="d-flex align-items-center justify-content-center rounded-1 p-2 me-3" style={{ background: 'rgba(255,255,255,0.1)', width: '35px', height: '35px' }}>
@@ -407,7 +407,7 @@ const Header = () => {
                           </div>
                         </div>
                       </div>
-                      
+
                       <div className="p-3">
                         <button className="btn w-100 d-flex align-items-center justify-content-center gap-2" style={{ background: 'rgba(220, 53, 69, 0.2)', border: '1px solid rgba(220, 53, 69, 0.3)', color: '#ffffff', borderRadius: '10px', padding: '8px' }} onClick={handleLogout}>
                           <IoMdLogOut size={18} />
@@ -468,56 +468,243 @@ const Header = () => {
         </div>
       </div>
 
-      {/* Mobile Menu Sidebar */}
-      {mobileMenuOpen && (
-        <>
-          <div className="position-fixed" style={{ top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1001 }} onClick={() => setMobileMenuOpen(false)} />
-          <div className="position-fixed" style={{ top: 0, left: 0, bottom: 0, width: '280px', background: 'rgba(0,0,0,0.98)', backdropFilter: 'blur(10px)', zIndex: 1002, transform: mobileMenuOpen ? 'translateX(0)' : 'translateX(-100%)', transition: 'transform 0.3s ease', borderRight: '1px solid rgba(255,255,255,0.1)', overflowY: 'auto' }}>
-            <div className="d-flex align-items-center p-3 border-bottom" style={{ borderBottomColor: 'rgba(255,255,255,0.1)' }}>
-              <img src={userProfileImage} className="rounded-circle" width="50" height="50" alt="profile" style={{ objectFit: 'cover' }} />
-              <div className="ms-3">
-                <h6 className="mb-0" style={{ color: '#ffffff', fontSize: '16px' }}>{userName}</h6>
-                <span className="d-block mt-1" style={{ color: '#4caf50', fontSize: '14px', fontWeight: 'bold' }}>
-                  ₹{currentBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                </span>
-              </div>
-            </div>
+{/* Mobile Menu Sidebar */}
+{/* Mobile Menu Sidebar */}
+{mobileMenuOpen && (
+  <>
+    {/* Overlay with fade animation */}
+    <div
+      className="position-fixed"
+      style={{
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0,0,0,0.7)',
+        zIndex: 1001,
+        animation: 'fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards'
+      }}
+      onClick={() => setMobileMenuOpen(false)}
+    />
 
-            <div className="py-2">
-              {menuItems.map((item) => (
-                <button
-                  key={item.name}
-                  onClick={() => handleNavigation(item.path, item.name)}
-                  style={{
-                    width: '100%',
-                    textAlign: 'left',
-                    background: activeMenu === item.name ? 'rgba(255,255,255,0.1)' : 'transparent',
-                    border: 'none',
-                    color: activeMenu === item.name ? '#ffffff' : 'rgba(255,255,255,0.8)',
-                    padding: '12px 20px',
-                    fontSize: '15px',
-                    fontWeight: activeMenu === item.name ? '600' : '400',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
-                >
-                  {item.icon}
-                  <span className="ms-3">{item.name}</span>
-                </button>
-              ))}
-            </div>  
-
-            <div className="p-3 border-top mt-auto" style={{ borderTopColor: 'rgba(255,255,255,0.1)', position: 'absolute', bottom: 0, left: 0, right: 0 }}>
-              <button className="btn w-100 d-flex align-items-center justify-content-center gap-2" style={{ background: 'rgba(220,53,69,0.2)', border: '1px solid rgba(220,53,69,0.3)', color: '#ffffff', borderRadius: '30px', padding: '10px' }} onClick={handleLogout}>
-                <IoMdLogOut size={18} />
-                <span>Logout</span>
-              </button>
-            </div>
+    {/* Sidebar with smooth slide animation */}
+    <div
+      className="position-fixed"
+      style={{
+        top: 0,
+        left: 0,
+        bottom: 0,
+        width: '280px',
+        background: 'rgb(23, 53, 32)',
+        backdropFilter: 'blur(10px)',
+        zIndex: 1002,
+        borderRight: '1px solid rgba(255,255,255,0.1)',
+        overflowY: 'auto',
+        animation: mobileMenuOpen ? 'slideInLeft 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards' : 'slideOutLeft 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards'
+      }}
+    >
+      {/* Header with Profile and Close Button */}
+      <div className="d-flex justify-content-between align-items-center p-3 border-bottom" style={{ borderBottomColor: 'rgba(255,255,255,0.1)' }}>
+        {/* Profile Section */}
+        <div className="d-flex align-items-center">
+          <img
+            src={userProfileImage}
+            className="rounded-circle"
+            width="45"
+            height="45"
+            alt="profile"
+            style={{
+              objectFit: 'cover',
+              transition: 'transform 0.3s ease'
+            }}
+          />
+          <div className="ms-3">
+            <h6
+              className="mb-0"
+              style={{
+                color: '#ffffff',
+                fontSize: '15px',
+                fontWeight: '600'
+              }}
+            >
+              {userName}
+            </h6>
+            <span
+              className="d-block mt-1"
+              style={{
+                color: '#4caf50',
+                fontSize: '12px',
+                fontWeight: 'bold'
+              }}
+            >
+              ₹{currentBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </span>
           </div>
-        </>
-      )}
+        </div>
+
+        {/* Close Button */}
+        <button
+          onClick={() => setMobileMenuOpen(false)}
+          style={{
+            background: 'rgba(255,255,255,0.1)',
+            border: '1px solid rgba(255,255,255,0.2)',
+            borderRadius: '50%',
+            width: '35px',
+            height: '35px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            color: '#ffffff'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.2)';
+            e.currentTarget.style.transform = 'rotate(90deg) scale(1.1)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+            e.currentTarget.style.transform = 'rotate(0deg) scale(1)';
+          }}
+        >
+          <IoMdClose size={20} />
+        </button>
+      </div>
+
+      {/* Menu Items with sequential animation */}
+      <div className="py-3">
+        {menuItems.map((item, index) => (
+          <button
+            key={item.name}
+            onClick={() => handleNavigation(item.path, item.name)}
+            style={{
+              width: '100%',
+              textAlign: 'left',
+              background: activeMenu === item.name ? 'rgba(255,255,255,0.1)' : 'transparent',
+              border: 'none',
+              color: activeMenu === item.name ? '#ffffff' : 'rgba(255,255,255,0.8)',
+              padding: '12px 20px',
+              fontSize: '15px',
+              fontWeight: activeMenu === item.name ? '600' : '400',
+              cursor: 'pointer',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              display: 'flex',
+              alignItems: 'center',
+              position: 'relative',
+              animation: `slideInFromLeft 0.35s cubic-bezier(0.4, 0, 0.2, 1) ${0.1 + index * 0.05}s both`,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+              e.currentTarget.style.paddingLeft = '25px';
+              e.currentTarget.style.color = '#ffd700';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = activeMenu === item.name ? 'rgba(255,255,255,0.1)' : 'transparent';
+              e.currentTarget.style.paddingLeft = '20px';
+              e.currentTarget.style.color = activeMenu === item.name ? '#ffffff' : 'rgba(255,255,255,0.8)';
+            }}
+          >
+            <span style={{
+              transition: 'transform 0.3s ease',
+              display: 'inline-flex'
+            }}>
+              {item.icon}
+            </span>
+            <span className="ms-3">{item.name}</span>
+            {activeMenu === item.name && (
+              <span style={{
+                position: 'absolute',
+                left: 0,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: '3px',
+                height: '60%',
+                background: '#ffd700',
+                borderRadius: '0 2px 2px 0',
+                animation: 'slideInLeft 0.2s ease'
+              }} />
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Logout Button */}
+      <div
+        className="p-3 border-top mt-auto"
+        style={{
+          borderTopColor: 'rgba(255,255,255,0.1)',
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          animation: 'fadeInUp 0.4s ease 0.3s both'
+        }}
+      >
+        <button
+          className="btn w-100 d-flex align-items-center justify-content-center gap-2"
+          style={{
+            background: 'rgba(220,53,69,0.2)',
+            border: '1px solid rgba(220,53,69,0.3)',
+            color: '#ffffff',
+            borderRadius: '30px',
+            padding: '10px',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+          }}
+          onClick={handleLogout}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(220,53,69,0.4)';
+            e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(220,53,69,0.2)';
+            e.currentTarget.style.transform = 'translateY(0) scale(1)';
+          }}
+        >
+          <IoMdLogOut size={18} />
+          <span>Logout</span>
+        </button>
+      </div>
+    </div>
+  </>
+)}
+
+{/* CSS Animations */}
+<style>{`
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  @keyframes slideInLeft {
+    from { transform: translateX(-100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  
+  @keyframes slideOutLeft {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(-100%); opacity: 0; }
+  }
+  
+  @keyframes slideInFromLeft {
+    from { transform: translateX(-30px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  
+  @keyframes fadeInUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  
+  @keyframes slideInRight {
+    from { transform: translateX(-15px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  
+  @keyframes scaleIn {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+`}</style>
     </>
   );
 };

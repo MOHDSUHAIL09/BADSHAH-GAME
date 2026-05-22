@@ -816,7 +816,7 @@ body {
 @media (max-width: 480px) {
 
   .timer-digits-box{
-    padding: 10px 20px;
+    padding: 10px 30px;
   }
   /* Header */
   .main-title {
@@ -826,12 +826,6 @@ body {
   .subtitle {
     font-size: 0.7rem;
     letter-spacing: 1px;
-  }
-  
-  /* Wallet Cards */
-  .wallet-card-new, .total-bet-card {
-    padding: 12px;
-    gap: 10px;
   }
   
   .wallet-icon, .bet-icon {
@@ -1097,10 +1091,7 @@ body {
     font-size: 0.6rem;
   }
   
-  .wallet-card-new, .total-bet-card {
-    padding: 8px;
-  }
-  
+
   .wallet-info h2, .bet-info h2 {
     font-size: 12px;
   }

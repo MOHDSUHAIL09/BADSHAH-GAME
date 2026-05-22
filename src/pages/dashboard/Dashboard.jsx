@@ -181,7 +181,7 @@ const Dashboard = () => {
       const token = getAuthToken();
 
       const response = await apiClient.get('/Trading/game-result', {
-        params: { PageIndex: 1, PageSize: 50 },
+        params: { PageIndex: 1, PageSize: 10 },
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -217,7 +217,7 @@ const Dashboard = () => {
             showToastMessage(`🎉 You won ₹${winAmount}!`, true);
             setTimeout(() => refreshData(), 500);
           } else if (hasUserPlacedBet) {
-            showToastMessage(`😢 Winning number was ${winningIcon?.name || winningNumber}`, false);
+            showToastMessage(`Winning number was ${winningIcon?.name || winningNumber}`, false);
           }
         }
 
@@ -561,17 +561,17 @@ const Dashboard = () => {
                     <h2 className="mb-0" style={{ color: "#ffd700" }}>₹{(userData?.currentAmount || 0).toLocaleString('en-IN')}</h2>
                   </div>
                 </div>
-                
+
               </div>
             </div>
-            <div className="col-12 col-md-6">                         
-                  <div className="wallet-card-new d-flex align-items-center justify-content-between flex-wrap gap-3">
-                    <div className="timer-digits-box">
-                      <span style={{fontWeight: "900", fontSize: "16px"}}>{formatSeconds(timeLeft)}</span>
-                    </div>
-                    <div className="timer-digits-box">
-                      <span>GAME ID: {gameId || userData?.gameid || 'LOADING'}</span>
-                    </div>          
+            <div className="col-12 col-md-6">
+              <div className="wallet-card-new d-flex align-items-center justify-content-between flex-wrap gap-3">
+                <div className="timer-digits-box">
+                  <span style={{ fontWeight: "900", fontSize: "16px" }}>{formatSeconds(timeLeft)}</span>
+                </div>
+                <div className="timer-digits-box">
+                  <span>GAME ID: {gameId || userData?.gameid || 'LOADING'}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -652,58 +652,349 @@ const Dashboard = () => {
           {showToast && <div className="center-toast"><div className="toast-content">{toastMessage}</div></div>}
 
           {/* Last 10 Seconds Modal */}
-          {showLast10Modal && (
-            <div className="modal-overlay">
-              <div className="last10-modal-content">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '20px' }}>
-                  <i className="bi bi-alarm" style={{ fontSize: '48px', color: '#ff4444' }}></i>
-                  <h3 style={{ color: '#ff4444', margin: 0 }}>LAST 10 SECONDS!</h3>
-                </div>
-                <div className="last10-timer">{last10TimeLeft}</div>
-                <div style={{
-                  width: '100%',
-                  height: '8px',
-                  background: 'rgba(255,255,255,0.2)',
-                  borderRadius: '4px',
-                  margin: '20px 0',
-                  overflow: 'hidden'
-                }}>
-                  <div style={{
-                    width: `${(last10TimeLeft / 10) * 100}%`,
-                    height: '100%',
-                    background: '#ff4444',
-                    borderRadius: '4px',
-                    transition: 'width 1s linear'
-                  }}></div>
-                </div>
-                <p style={{ color: 'white' }}>Betting Closed! Result coming soon...</p>
-              </div>
-            </div>
-          )}
+ {/* Last 10 Seconds Modal */}
+{showLast10Modal && (
+  <div className="modal-overlay" style={{
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(0,0,0,0.9)',
+    backdropFilter: 'blur(10px)',
+    zIndex: 9999,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    animation: 'modalFadeIn 0.3s ease'
+  }}>
+    <div style={{
+      width: '90%',
+      maxWidth: '380px',
+      background: 'linear-gradient(135deg, #1a1a2e, #16213e, #0f0f23)',
+      borderRadius: '28px',
+      padding: '30px 24px',
+      textAlign: 'center',
+      position: 'relative',
+      boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5), 0 0 0 2px rgba(255,68,68,0.3), 0 0 30px rgba(255,68,68,0.2)',
+      border: '1px solid rgba(255,68,68,0.3)',
+      animation: 'modalPopIn 0.5s cubic-bezier(0.34, 1.2, 0.64, 1)'
+    }}>
+      
+      {/* Warning Icon with Pulse Animation */}
+      <div style={{
+        width: '90px',
+        height: '90px',
+        background: 'linear-gradient(135deg, #ff4444, #cc0000)',
+        borderRadius: '50%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        margin: '0 auto 20px',
+        boxShadow: '0 0 30px rgba(255,68,68,0.6)',
+        animation: 'pulseWarning 1.5s infinite'
+      }}>
+        <i className="bi bi-alarm" style={{ fontSize: '50px', color: '#fff' }}></i>
+      </div>
+
+      {/* Title */}
+      <h3 style={{
+        fontSize: '28px',
+        fontWeight: 'bold',
+        margin: '0 0 8px',
+        background: 'linear-gradient(135deg, #ff4444, #ff6b6b)',
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+        backgroundClip: 'text'
+      }}>
+        LAST 10 SECONDS!
+      </h3>
+      
+      <p style={{
+        color: 'rgba(255,255,255,0.6)',
+        fontSize: '14px',
+        marginBottom: '25px'
+      }}>
+        Betting is now closed
+      </p>
+
+      {/* Timer Circle */}
+      <div style={{
+        position: 'relative',
+        width: '150px',
+        height: '150px',
+        margin: '0 auto 25px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        {/* SVG Circle Timer */}
+        <svg width="150" height="150" viewBox="0 0 150 150" style={{ position: 'absolute', top: 0, left: 0 }}>
+          <circle
+            cx="75"
+            cy="75"
+            r="68"
+            fill="none"
+            stroke="rgba(255,68,68,0.2)"
+            strokeWidth="6"
+          />
+          <circle
+            cx="75"
+            cy="75"
+            r="68"
+            fill="none"
+            stroke="#ff4444"
+            strokeWidth="6"
+            strokeLinecap="round"
+            strokeDasharray={`${2 * Math.PI * 68}`}
+            strokeDashoffset={`${2 * Math.PI * 68 * (1 - last10TimeLeft / 10)}`}
+            style={{
+              transform: 'rotate(-90deg)',
+              transformOrigin: '50% 50%',
+              transition: 'stroke-dashoffset 1s linear'
+            }}
+          />
+        </svg>
+        <div style={{
+          width: '120px',
+          height: '120px',
+          background: 'rgba(255,68,68,0.1)',
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          border: '2px solid rgba(255,68,68,0.3)'
+        }}>
+          <span style={{
+            fontSize: '52px',
+            fontWeight: 'bold',
+            color: '#ff4444',
+            textShadow: '0 0 20px rgba(255,68,68,0.5)'
+          }}>
+            {last10TimeLeft}
+          </span>
+        </div>
+      </div>
+
+      {/* Decorative Elements */}
+      <div style={{
+        position: 'absolute',
+        top: '20px',
+        left: '20px',
+        width: '50px',
+        height: '50px',
+        background: 'radial-gradient(circle, rgba(255,68,68,0.3) 0%, transparent 70%)',
+        borderRadius: '50%',
+        pointerEvents: 'none'
+      }} />
+      <div style={{
+        position: 'absolute',
+        bottom: '20px',
+        right: '20px',
+        width: '80px',
+        height: '80px',
+        background: 'radial-gradient(circle, rgba(255,68,68,0.2) 0%, transparent 70%)',
+        borderRadius: '50%',
+        pointerEvents: 'none'
+      }} />
+    </div>
+  </div>
+)}
+
+
 
           {/* Win/Lose Modal */}
           {showModal && (
-            <div className="modal-overlay">
-              <div className={`modal-container ${modalData.isWin ? 'modal-win' : 'modal-lose'}`}>
-                <div className="modal-header-custom">
-                  {modalData.isWin ? <i className="bi bi-trophy-fill"></i> : <i className="bi bi-emoji-frown"></i>}
-                  <h3>{modalData.isWin ? '🎉 YOU WIN! 🎉' : '😢 YOU LOSE 😢'}</h3>
-                </div>
-                <div className="modal-body-custom">
-                  <div className="winner-emoji">{modalData.icon?.emoji}</div>
-                  <h4 className='text01'>{modalData.icon?.name}</h4>
-                  <div style={{ fontSize: '12px', color: '#888', marginBottom: '10px' }}>#{modalData.winningNumber}</div>
-                  {modalData.isWin && (
-                    <>
-                      <div style={{ fontSize: '16px', color: '#ccc', marginTop: '10px' }}>Bet Amount: ₹{modalData.betAmount}</div>
-                      <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#ffd700', margin: '10px 0' }}>+ ₹{modalData.amount}</div>
-                      <div style={{ fontSize: '14px', color: '#4ecdc4' }}>(9x Your Bet!)</div>
-                    </>
+            <div className="modal-overlay" style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0,0,0,0.85)',
+              backdropFilter: 'blur(8px)',
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              animation: 'modalFadeIn 0.3s ease'
+            }}>
+              <div className={`modal-container ${modalData.isWin ? 'modal-win' : 'modal-lose'}`} style={{
+                width: '90%',
+                maxWidth: '400px',
+                background: modalData.isWin
+                  ? 'linear-gradient(135deg, #0f2e1a, #1a472a, #0d2818)'
+                  : 'linear-gradient(135deg, #2a1a1a, #3d1a1a, #2a0f0f)',
+                borderRadius: '24px',
+                padding: '24px',
+                textAlign: 'center',
+                position: 'relative',
+                boxShadow: modalData.isWin
+                  ? '0 20px 40px rgba(0,255,0,0.2), 0 0 20px rgba(76,175,80,0.3)'
+                  : '0 20px 40px rgba(255,0,0,0.15)',
+                border: modalData.isWin
+                  ? '1px solid rgba(76, 175, 80, 0.5)'
+                  : '1px solid rgba(255, 68, 68, 0.5)',
+                transform: 'scale(1)',
+                animation: 'modalPopIn 0.4s cubic-bezier(0.34, 1.2, 0.64, 1)'
+              }}>
+
+                {/* Close Button */}
+                <button
+                  onClick={() => setShowModal(false)}
+                  style={{
+                    position: 'absolute',
+                    top: '12px',
+                    right: '12px',
+                    background: 'rgba(255,255,255,0.1)',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    borderRadius: '50%',
+                    width: '30px',
+                    height: '30px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: '#ffffff',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.2)';
+                    e.currentTarget.style.transform = 'rotate(90deg)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+                    e.currentTarget.style.transform = 'rotate(0deg)';
+                  }}
+                >
+                  <i className="bi bi-x-lg" style={{ fontSize: '14px' }}></i>
+                </button>
+
+                {/* Header */}
+                <div style={{ marginBottom: '20px' }}>
+                  {modalData.isWin ? (
+                    <div style={{
+                      width: '80px',
+                      height: '80px',
+                      background: 'linear-gradient(135deg, #ffd700, #ff8c00)',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      margin: '0 auto 15px',
+                      boxShadow: '0 0 30px rgba(255,215,0,0.5)'
+                    }}>
+                      <i className="bi bi-trophy-fill" style={{ fontSize: '45px', color: '#fff' }}></i>
+                    </div>
+                  ) : (
+                    <div style={{
+                      width: '80px',
+                      height: '80px',
+                      background: 'linear-gradient(135deg, #ff4444, #cc0000)',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      margin: '0 auto 15px'
+                    }}>
+                      <i className="bi bi-emoji-frown" style={{ fontSize: '45px', color: '#fff' }}></i>
+                    </div>
                   )}
-                  <p style={{ marginTop: '15px' }}>
-                    {modalData.isWin ? `🎉 Congratulations! You won ₹${modalData.amount}! 🎉` : `😢 Better luck next time! Winning number was ${modalData.icon?.name || modalData.winningNumber} 😢`}
-                  </p>
+                  <h3 style={{
+                    fontSize: '28px',
+                    fontWeight: 'bold',
+                    margin: 0,
+                    background: modalData.isWin
+                      ? 'linear-gradient(135deg, #ffd700, #ff8c00)'
+                      : 'linear-gradient(135deg, #ff6b6b, #ff4444)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text'
+                  }}>
+                    {modalData.isWin ? 'YOU WIN!' : 'YOU LOSE'}
+                  </h3>
                 </div>
+
+                {/* Body */}
+                <div style={{ marginBottom: '20px' }}>
+                  {/* Winner Emoji */}
+                  <div style={{
+                    fontSize: '80px',
+                    marginBottom: '10px',
+                    animation: 'winnerBounce 0.5s ease'
+                  }}>
+                    {modalData.icon?.emoji || '🎲'}
+                  </div>
+
+                  {/* Winner Name */}
+                  <h4 style={{
+                    fontSize: '24px',
+                    fontWeight: 'bold',
+                    margin: '5px 0',
+                    background: modalData.isWin
+                      ? 'linear-gradient(135deg, #4caf50, #8bc34a)'
+                      : 'linear-gradient(135deg, #ff6b6b, #ff4444)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text'
+                  }}>
+                    {modalData.icon?.name || modalData.winningNumber}
+                  </h4>
+
+                  <div style={{
+                    fontSize: '12px',
+                    color: 'rgba(255,255,255,0.5)',
+                    marginBottom: '15px'
+                  }}>
+                    #{modalData.winningNumber}
+                  </div>
+
+                  {modalData.isWin && (
+                    <div style={{
+                      background: 'rgba(76, 175, 80, 0.15)',
+                      borderRadius: '16px',
+                      padding: '15px',
+                      margin: '10px 0',
+                      border: '1px solid rgba(76, 175, 80, 0.3)'
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: '10px',
+                        padding: '0 10px'
+                      }}>
+                        <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px' }}>Bet Amount:</span>
+                        <span style={{ color: '#ffd700', fontSize: '18px', fontWeight: 'bold' }}>₹{modalData.betAmount}</span>
+                      </div>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '0 10px'
+                      }}>
+                        <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px' }}>Win Amount:</span>
+                        <div>
+                          <span style={{ color: '#4caf50', fontSize: '28px', fontWeight: 'bold' }}>+₹{modalData.amount}</span>
+                          <span style={{ color: '#8bc34a', fontSize: '12px', marginLeft: '8px' }}>(9x)</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Message */}
+                <p style={{
+                  marginTop: '15px',
+                  marginBottom: 0,
+                  color: 'rgba(255,255,255,0.7)',
+                  fontSize: '14px',
+                  lineHeight: '1.5'
+                }}>
+                  {modalData.isWin
+                    ? `Amazing! You won ₹${modalData.amount}! Keep playing! 🎉`
+                    : `Better luck next time! Winning number was ${modalData.icon?.name || modalData.winningNumber} 😢`}
+                </p>
               </div>
             </div>
           )}
