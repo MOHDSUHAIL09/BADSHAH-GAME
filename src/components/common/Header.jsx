@@ -45,12 +45,16 @@ const Header = () => {
           <div className="logo">
             <a href="/">
               <span className="logo-icon">🎮</span>
-              <span className="logo-text">Game<span>Zone</span></span>
+              <span className="logo-text">BAD<span>SHAH</span></span>
             </a>
           </div>
 
           {/* Desktop Navigation */}
           <nav className={`nav-menu ${isMenuOpen ? 'active' : ''}`}>
+
+            <span className="logo-text" style={{position: "absolute", marginTop: "-60px", fontSize: "25px", fontWeight: "700"}}>BAD<span>SHAH</span></span>
+
+
             <ul className="nav-links">
               <li><a href="/" onClick={closeMenu}>Home</a></li>
               <li><a href="/game" onClick={closeMenu}>Games</a></li>
@@ -60,10 +64,10 @@ const Header = () => {
 
             {/* Auth Buttons - Mobile */}
             <div className="auth-buttons-mobile">
-              <button onClick={() => { navigate('/login'); closeMenu(); }}>
+              <button className='btn-login' onClick={() => { navigate('/login'); closeMenu(); }}>
                 Login
               </button>
-              <button onClick={() => { navigate('/signup'); closeMenu(); }}>
+              <button className='btn-signup' onClick={() => { navigate('/signup'); closeMenu(); }}>
                 Sign Up
               </button>
             </div>

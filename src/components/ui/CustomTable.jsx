@@ -21,7 +21,7 @@ const CustomTable = ({ columns, children, loading = false, emptyMessage = "No da
                   <div className="spinner-border text-warning" role="status" style={{ width: '40px', height: '40px' }}>
                     <span className="visually-hidden">Loading...</span>
                   </div>
-                  <span className="text-white">Loading withdrawal data...</span>
+                  <span className="text-white"></span>
                 </div>
               </td>
             </tr>

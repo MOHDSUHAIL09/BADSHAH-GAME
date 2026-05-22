@@ -48,7 +48,7 @@ export const UserProvider = ({ children }) => {
       if (res.data.success) {
         const apiData = res.data.data;
         const newUserData = {
-          pid: apiData.pid || user?.pid,
+          pid: apiData.id || user?.id,
           currentamt: apiData.currentamt || 0,
           currentAmount: apiData.currentAmount,
           gameid: apiData.gameid,

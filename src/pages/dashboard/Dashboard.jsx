@@ -48,11 +48,11 @@ const Dashboard = () => {
     { id: 0, name: 'Umbrella', emoji: '☂️', emojiCode: '1', value: 50, color: '#ff6b6b' },
     { id: 1, name: 'Ball', emoji: '⚽', emojiCode: '2', value: 45, color: '#4ecdc4' },
     { id: 2, name: 'Sun', emoji: '☀️', emojiCode: '3', value: 40, color: '#ffe66d' },
-    { id: 3, name: 'Depak', emoji: '🪔', emojiCode: '4', value: 55, color: '#ff9f43' },
+    { id: 3, name: 'Diya', emoji: '🪔', emojiCode: '4', value: 55, color: '#ff9f43' },
     { id: 4, name: 'Cow', emoji: '🐮', emojiCode: '5', value: 35, color: '#a8e6cf' },
-    { id: 5, name: 'Bukett', emoji: '💐', emojiCode: '6', value: 30, color: '#ff8da1' },
+    { id: 5, name: 'Bouquet', emoji: '💐', emojiCode: '6', value: 30, color: '#ff8da1' },
     { id: 6, name: 'Kite', emoji: '🪁', emojiCode: '7', value: 60, color: '#6c5ce7' },
-    { id: 7, name: 'Spaceship', emoji: '🚀', emojiCode: '8', value: 45, color: '#00cec9' },
+    { id: 7, name: 'Rocket', emoji: '🚀', emojiCode: '8', value: 45, color: '#00cec9' },
     { id: 8, name: 'Rose', emoji: '🌹', emojiCode: '9', value: 50, color: '#fd79a8' },
     { id: 9, name: 'Butterfly', emoji: '🦋', emojiCode: '10', value: 40, color: '#a29bfe' },
     { id: 10, name: 'Bird', emoji: '🐦', emojiCode: '11', value: 45, color: '#fdcb6e' },
@@ -544,7 +544,7 @@ const Dashboard = () => {
 
           {/* Wallet Cards */}
           <div className="row g-3 mb-4">
-            <div className="col-12">
+            <div className="col-12 col-md-6 col-sm-12">
               <div className="wallet-card-new d-flex align-items-center justify-content-between flex-wrap gap-3">
                 <div className="d-flex align-items-center gap-3">
                   <div className="wallet-icon"><i className="bi bi-wallet2"></i></div>
@@ -558,62 +558,20 @@ const Dashboard = () => {
                   <div className="wallet-icon"><i className="bi bi-wallet2"></i></div>
                   <div className="wallet-info">
                     <span style={{ color: "#FFF" }}>BETTING AMOUNT</span>
-                    <h2 className="mb-0" style={{ color: "#ffd700" }}>₹{(userData?.totbettingamt || 0).toLocaleString('en-IN')}</h2>
+                    <h2 className="mb-0" style={{ color: "#ffd700" }}>₹{(userData?.currentAmount || 0).toLocaleString('en-IN')}</h2>
                   </div>
                 </div>
-
-                <Link to="/dashboard/withdraw">
-                  <button className="btn btn-warning fw-bold py-2 px-4" style={{ borderRadius: '12px', background: 'linear-gradient(135deg, #ffd700, #ff8c00)', border: 'none' }}>
-                    💸 PayOut
-                  </button>
-                </Link>
+                
               </div>
             </div>
-          </div>
-
-          {/* Timer & Results */}
-          <div className="row g-3 mb-4">
-            <div className="col-12 col-md-7">
-              <div className="timer-card-digital">
-                <div className="timer-header-digital d-flex justify-content-between align-items-center px-2">
-                  <div className="d-flex align-items-center gap-2">
-                    <i className="bi bi-hourglass-split"></i>
-                    <span>TIME REMAINING</span>
-                  </div>
-                  {timeLeft <= 10 && timeLeft > 0 && <span className="urgent-badge">URGENT!</span>}
-                </div>
-                <div className='row'>
-                  <div className='px-3'>
-                    <div className="digit-box digital-timer d-flex justify-content-around align-items-center">
-                      <div className="timer-digits-box">
-                        <span>{formatSeconds(timeLeft)}</span>
-                      </div>
-                      <div className="timer-digits-box">
-                        <span>GAME ID: {gameId || userData?.gameid || 'LOADING'}</span>
-                      </div>
+            <div className="col-12 col-md-6">                         
+                  <div className="wallet-card-new d-flex align-items-center justify-content-between flex-wrap gap-3">
+                    <div className="timer-digits-box">
+                      <span style={{fontWeight: "900", fontSize: "16px"}}>{formatSeconds(timeLeft)}</span>
                     </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="col-12 col-md-5">
-              <div className="results-card">
-                <div className="results-header">
-                  <i className="bi bi-clock-history"></i>
-                  <span>LAST RESULTS</span>
-                </div>
-                <div className="results-list">
-                  {resultHistory.length > 0 ? (
-                    resultHistory.map((result, idx) => (
-                      <div key={idx} className="result-item">
-                        <div className="result-emoji-new">{result.emoji}</div>
-                        <div className="result-name-new">{result.name}</div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="no-results">No results yet</div>
-                  )}
-                </div>
+                    <div className="timer-digits-box">
+                      <span>GAME ID: {gameId || userData?.gameid || 'LOADING'}</span>
+                    </div>          
               </div>
             </div>
           </div>
@@ -666,6 +624,26 @@ const Dashboard = () => {
                 <button className='bet-button' onClick={handlePlaceBet} disabled={isBettingLocked || !isRoundActive || isPlacingBet} style={{ padding: '12px 40px', borderRadius: '50px', border: 'none', background: 'linear-gradient(135deg, #28a745, #20c997)', color: 'white', fontWeight: 'bold' }}>
                   {isPlacingBet ? '⏳ Placing Bets...' : '💰 Place Bet'}
                 </button>
+              </div>
+            </div>
+          </div>
+          <div className="col-12 col-md-12 col-sm-6">
+            <div className="results-card">
+              <div className="results-header">
+                <i className="bi bi-clock-history"></i>
+                <span>LAST RESULTS</span>
+              </div>
+              <div className="results-list">
+                {resultHistory.length > 0 ? (
+                  resultHistory.map((result, idx) => (
+                    <div key={idx} className="result-item">
+                      <div className="result-emoji-new">{result.emoji}</div>
+                      <div className="result-name-new">{result.name}</div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="no-results">No results yet</div>
+                )}
               </div>
             </div>
           </div>

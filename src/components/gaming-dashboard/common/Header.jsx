@@ -4,6 +4,7 @@ import { MdMessage, MdDashboard, MdPeople, MdAccountBalanceWallet } from 'react-
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useUser } from '../../../context/UserContext';
 import toast from 'react-hot-toast';
+import { GiCash } from 'react-icons/gi';
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -25,7 +26,9 @@ const Header = () => {
   const menuItems = [
     { name: 'Dashboard', path: '/dashboard', icon: <MdDashboard size={18} /> },
     { name: 'Referral Team', path: '/dashboard/referral', icon: <MdPeople size={18} /> },
-    { name: 'Add Funds', path: '/dashboard/addfunds', icon: <MdAccountBalanceWallet size={18} /> }
+    { name: 'Add Funds', path: '/dashboard/addfund', icon: <MdAccountBalanceWallet size={18} /> },
+    {name: 'PayOut',path: '/dashboard/withdraw',icon: <GiCash size={18} /> }
+    
   ];
 
   // User data from API response
@@ -152,7 +155,6 @@ const Header = () => {
               className="text-logo fw-bold fs-3"
               style={{ 
                 cursor: 'pointer',
-                background: 'linear-gradient(135deg, #fff 0%, #ccc 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
               }}

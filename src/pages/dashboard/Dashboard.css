@@ -225,9 +225,9 @@ body {
 }
 
 /* Digital Timer Display */
-.digital-timer {
+/* .digital-timer {
   margin: 10px 0;
-}
+} */
 
 .timer-digits-box {
   display: flex;
@@ -237,7 +237,8 @@ body {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 15px;
   border: 1px solid rgba(255, 215, 0, 0.3);
-  padding: 15px;
+  padding: 12px 30px;
+  color: rgb(255, 215, 0);
 }
 
 .digit-box {
@@ -815,7 +816,7 @@ body {
 @media (max-width: 480px) {
 
   .timer-digits-box{
-    padding: 10px;
+    padding: 10px 20px;
   }
   /* Header */
   .main-title {
