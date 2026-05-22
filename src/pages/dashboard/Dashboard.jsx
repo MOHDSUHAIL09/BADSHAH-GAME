@@ -31,6 +31,7 @@ const Dashboard = () => {
   const [isPlacingBet, setIsPlacingBet] = useState(false);
   const [isRoundActive, setIsRoundActive] = useState(true);
   const [roundGameId, setRoundGameId] = useState('');
+  const [closeBetCalled, setCloseBetCalled] = useState(false);
 
   // ==================== REFS ====================
   const last10ModalShownRef = useRef(false);
@@ -60,6 +61,35 @@ const Dashboard = () => {
 
   const betOptions = [10, 20, 50, 100, 500, 1000, 5000, 10000];
 
+  // ==================== CLOSE BET API CALL ====================
+  const closeBetAPI = async (gameId) => {
+    try {
+      const token = getAuthToken();
+      const requestBody = {
+        currency: "string",
+        currentCurrencyRate: 0,
+        unique_id: String(gameId)
+      };
+
+
+      const response = await apiClient.post('/Trading/CloseBet', requestBody, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+
+      if (response.data?.success) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (error) {
+      return false;
+    }
+  };
+
   // ==================== LOCAL STORAGE ====================
   const saveBetsToLocalStorage = (gameId, bets) => {
     const betData = {
@@ -69,7 +99,6 @@ const Dashboard = () => {
       totalAmount: bets.reduce((sum, b) => sum + b.amount, 0)
     };
     localStorage.setItem(`bets_${gameId}`, JSON.stringify(betData));
-    console.log("💾 Bets saved for game:", gameId);
   };
 
   const getBetsFromLocalStorage = (gameId) => {
@@ -80,7 +109,6 @@ const Dashboard = () => {
   // ==================== LAST 10 SECONDS MODAL ====================
   const showLast10SecondsModal = () => {
     if (last10ModalShownRef.current) return;
-    console.log("🔔 LAST 10 SECONDS! Opening modal...");
     last10ModalShownRef.current = true;
     setIsBettingLocked(true);
     setLast10TimeLeft(10);
@@ -95,8 +123,7 @@ const Dashboard = () => {
     last10IntervalRef.current = setInterval(() => {
       setLast10TimeLeft(prev => {
         const newTime = prev - 1;
-        console.log("⏰ Modal countdown:", newTime);
-        
+
         if (newTime <= 0) {
           clearInterval(last10IntervalRef.current);
           last10IntervalRef.current = null;
@@ -128,7 +155,6 @@ const Dashboard = () => {
 
   // ==================== RESET ROUND ====================
   const resetRound = () => {
-    console.log("🔄 Resetting round");
     setBetAmounts(Array(12).fill(0));
     setPreviewAmounts(Array(12).fill(0));
     setTotalBet(0);
@@ -140,7 +166,8 @@ const Dashboard = () => {
     setShowLast10Modal(false);
     setIsRoundActive(true);
     setRoundGameId('');
-    
+    setCloseBetCalled(false);
+
     // Clear last10 interval if exists
     if (last10IntervalRef.current) {
       clearInterval(last10IntervalRef.current);
@@ -152,32 +179,27 @@ const Dashboard = () => {
   const checkWinningResult = async () => {
     try {
       const token = getAuthToken();
+
       const response = await apiClient.get('/Trading/game-result', {
         params: { PageIndex: 1, PageSize: 50 },
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
+
+
       if (response.data?.success) {
         const results = response.data.data?.data || [];
         const currentGameId = roundGameId || gameIdRef.current;
-        console.log("🔍 Checking result for gameId:", currentGameId);
-        
+
         if (!currentGameId) return null;
-
-        // ✅ FIX: Convert both to string for comparison
+        // Convert both to string for comparison
         const myGameResult = results.find(r => String(r.gameid) === String(currentGameId));
-        console.log("📊 Found result:", myGameResult);
-        
         if (!myGameResult) return null;
-
         const winningNumber = myGameResult.betnumber;
-        console.log("🏆 Winning Number:", winningNumber);
-        
         if (!winningNumber) return null;
 
         const savedBets = getBetsFromLocalStorage(currentGameId);
-        console.log("📦 Saved bets:", savedBets);
-        
+
         let isWin = false;
         let winAmount = 0;
         let userBetAmount = 0;
@@ -192,11 +214,9 @@ const Dashboard = () => {
             isWin = true;
             userBetAmount = matchedBet.amount;
             winAmount = userBetAmount * 9;
-            console.log("🎉 WIN! Amount:", winAmount);
             showToastMessage(`🎉 You won ₹${winAmount}!`, true);
             setTimeout(() => refreshData(), 500);
           } else if (hasUserPlacedBet) {
-            console.log("😢 LOSE!");
             showToastMessage(`😢 Winning number was ${winningIcon?.name || winningNumber}`, false);
           }
         }
@@ -205,7 +225,6 @@ const Dashboard = () => {
         setCurrentIcon(winningIcon);
 
         if (hasUserPlacedBet) {
-          console.log("🎯 Showing result modal");
           setModalData({
             isWin,
             amount: winAmount,
@@ -227,49 +246,7 @@ const Dashboard = () => {
       }
       return null;
     } catch (error) {
-      console.error('Check Result Error:', error);
       return null;
-    }
-  };
-
-  // ==================== DECLARE RESULT ====================
-  const declareResult = async () => {
-    if (isResultDeclaredRef.current) return;
-    console.log("🎯 DECLARE RESULT CALLED");
-    isResultDeclaredRef.current = true;
-    setIsRoundActive(false);
-    
-    // Clear timer
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-
-    const result = await checkWinningResult();
-    if (!result) {
-      const savedBets = getBetsFromLocalStorage(roundGameId || gameIdRef.current);
-      const hasUserPlacedBet = savedBets && savedBets.bets && savedBets.bets.length > 0;
-
-      if (hasUserPlacedBet) {
-        console.log("🎲 No API result, showing random result modal");
-        const randomWinner = Math.floor(Math.random() * items.length);
-        const winningIcon = items[randomWinner];
-        const winnerBet = betAmounts[randomWinner];
-        const winAmount = winnerBet * 9;
-        setModalData({
-          isWin: winnerBet > 0,
-          amount: winAmount,
-          icon: winningIcon,
-          betAmount: winnerBet,
-          winningNumber: winningIcon.emojiCode
-        });
-        setShowModal(true);
-        setTimeout(() => setWinnerIndex(null), 3000);
-        if (modalTimeoutRef.current) clearTimeout(modalTimeoutRef.current);
-        modalTimeoutRef.current = setTimeout(() => {
-          setShowModal(false);
-        }, 4000);
-      }
     }
   };
 
@@ -280,50 +257,92 @@ const Dashboard = () => {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
-    
+
     // If timer reached 0
     if (timeLeft <= 0) {
-      console.log("🚨 TIMER REACHED 0!");
-      
+
       if (!apiCallInProgressRef.current) {
         apiCallInProgressRef.current = true;
-        
-        // Declare result first
-        declareResult();
-        
-        // Then refresh data
-        setTimeout(() => {
-          forceRefresh();
-        }, 500);
-        
-        // Reset after some time
-        setTimeout(() => {
-          apiCallInProgressRef.current = false;
-          resetRound();
-        }, 3000);
+
+        // Call game-result API at 0 seconds
+        const getResultAtZero = async () => {
+          const result = await checkWinningResult();
+
+          if (!result) {
+            const currentGameId = roundGameId || gameIdRef.current || gameId;
+            const savedBets = getBetsFromLocalStorage(currentGameId);
+            const hasUserPlacedBet = savedBets && savedBets.bets && savedBets.bets.length > 0;
+
+            if (hasUserPlacedBet) {
+              console.log("🎲 No API result, showing random result modal");
+              const randomWinner = Math.floor(Math.random() * items.length);
+              const winningIcon = items[randomWinner];
+              const winnerBet = betAmounts[randomWinner];
+              const winAmount = winnerBet * 9;
+              setModalData({
+                isWin: winnerBet > 0,
+                amount: winAmount,
+                icon: winningIcon,
+                betAmount: winnerBet,
+                winningNumber: winningIcon.emojiCode
+              });
+              setShowModal(true);
+              setTimeout(() => setWinnerIndex(null), 3000);
+              if (modalTimeoutRef.current) clearTimeout(modalTimeoutRef.current);
+              modalTimeoutRef.current = setTimeout(() => {
+                setShowModal(false);
+              }, 4000);
+            }
+          }
+
+          // Refresh data after result
+          setTimeout(() => {
+            forceRefresh();
+          }, 500);
+
+          // Reset after some time
+          setTimeout(() => {
+            apiCallInProgressRef.current = false;
+            resetRound();
+          }, 3000);
+        };
+
+        getResultAtZero();
       }
       return;
     }
-    
+
+    // Check for exactly 10 seconds - Call CloseBet API
+    if (timeLeft === 10 && !closeBetCalled && !isResultDeclaredRef.current) {
+
+      // Call CloseBet API
+      const currentGameId = roundGameId || gameIdRef.current || gameId;
+
+      if (currentGameId) {
+        setCloseBetCalled(true);
+        closeBetAPI(currentGameId).then(success => {
+          if (success) {
+          }
+        });
+      } else {
+        console.log("⚠️ No Game ID available for CloseBet API");
+      }
+
+      // Show the last 10 seconds modal
+      showLast10SecondsModal();
+    }
+
     // Start new timer
-    console.log("⏰ Starting timer with:", timeLeft);
     timerRef.current = setInterval(() => {
       setTimeLeft(prev => {
         const newTime = prev - 1;
-        
-        // Check for last 10 seconds
-        if (newTime === 10 && !last10ModalShownRef.current && !isResultDeclaredRef.current) {
-          showLast10SecondsModal();
-        }
-        
         return newTime;
       });
     }, 1000);
-    
+
     // Cleanup function
     return () => {
       if (timerRef.current) {
-        console.log("🧹 Cleaning up timer");
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
@@ -463,11 +482,6 @@ const Dashboard = () => {
   // ==================== SYNC USERDATA ====================
   useEffect(() => {
     if (userData) {
-      console.log("📡 USERDATA UPDATED:", {
-        gameid: userData.gameid,
-        seconds: userData.seconds,
-        currentamt: userData.currentamt
-      });
 
       if (userData.gameid) {
         setGameId(userData.gameid);
@@ -481,17 +495,16 @@ const Dashboard = () => {
   }, [userData]);
 
   // ==================== INITIALIZE ====================
-  useEffect(() => { 
-    console.log("🚀 INITIALIZING DASHBOARD");
+  useEffect(() => {
     fetchGameResults();
     const interval = setInterval(fetchGameResults, 20000);
-    
+
     if (userData?.seconds && userData.seconds > 0) {
       setTimeLeft(userData.seconds);
     } else {
       setTimeLeft(60);
     }
-    
+
     return () => {
       clearInterval(interval);
       if (timerRef.current) clearInterval(timerRef.current);
@@ -722,4 +735,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default Dashboard; 

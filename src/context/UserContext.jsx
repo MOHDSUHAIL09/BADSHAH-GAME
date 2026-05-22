@@ -36,17 +36,15 @@ export const UserProvider = ({ children }) => {
         setLoading(false);
         return;
       }
-      
+
       const regno = user?.RegNo || user?.regno || user?.id || localStorage.getItem("regno");
       if (!regno) {
         setLoading(false);
         return;
       }
-
-      console.log("🔄 Fetching dashboard data at:", new Date().toLocaleTimeString());
       const res = await apiClient.get(`/Dashboard/dashboard/${regno}`);
       console.log("Dashboard-Api Response:", res.data);
-      
+
       if (res.data.success) {
         const apiData = res.data.data;
         const newUserData = {
@@ -59,10 +57,10 @@ export const UserProvider = ({ children }) => {
           debit: apiData.debit,
           WinnerNumber: apiData.WinnerNumber,
         };
-         
+
         setUserData(newUserData);
         localStorage.setItem("userData", JSON.stringify(newUserData));
-        
+
         // Dispatch event for other components
         window.dispatchEvent(new CustomEvent('userDataUpdated', { detail: newUserData }));
       }
@@ -75,7 +73,6 @@ export const UserProvider = ({ children }) => {
 
   // ================= FORCE REFRESH (Called at last 10 seconds) =================
   const forceRefresh = async () => {
-    console.log("🔄 Force refresh called");
     await fetchData();
   };
 
@@ -100,7 +97,7 @@ export const UserProvider = ({ children }) => {
       clearInterval(fetchIntervalRef.current);
     }
   };
-    
+
   useEffect(() => {
     if (user) {
       fetchData();
@@ -109,7 +106,7 @@ export const UserProvider = ({ children }) => {
         fetchData();
       }, 30000);
     }
-    
+
     return () => {
       if (fetchIntervalRef.current) {
         clearInterval(fetchIntervalRef.current);
