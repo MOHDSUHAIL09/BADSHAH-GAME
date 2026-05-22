@@ -152,9 +152,9 @@ const Signup = () => {
       name: formData.fName,
       phone: formData.mobile,
       email: formData.email,
-      loginId: formData.mobile,
+      loginId: "###",
       pass: formData.password,
-      sName: formData.sponsorName || "Game",
+      sName: formData.sponsorName,
       sLoginId: formData.referrer_Id
     };
     
@@ -169,8 +169,7 @@ const Signup = () => {
       if (response.data.success === true) {
         console.log("✅ 14. Registration Success!");
         setRegisteredUser({
-          regno: response.data.data?.randomid,
-          loginId: response.data.data?.loginid || formData.mobile,
+          loginId: response.data.data?.loginid || formData.loginid,
           name: response.data.data?.profilename || formData.fName,
           email: response.data.data?.email || formData.email,
           mobile: response.data.data?.mobile || formData.mobile,
@@ -180,6 +179,8 @@ const Signup = () => {
         });
         setShowSuccessModal(true);
         toast.success("✅ Registration Successful!");
+
+        console.log("login id",loginid)
         
         // Reset form
         setFormData({
@@ -536,62 +537,7 @@ const Signup = () => {
             <FaIdCard /> Your Account Details
           </div>
 
-          {/* Registration No */}
-          <div 
-            className="detail-row02"
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '12px 0',
-              borderBottom: '1px solid rgba(255,255,255,0.1)'
-            }}
-          >
-            <div 
-              className="detail-label02"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                color: 'rgba(255,255,255,0.8)',
-                fontSize: '14px'
-              }}
-            >
-              <FaUser /> Registration No:
-            </div>
-            <div 
-              className="detail-value02"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                color: '#4caf50',
-                fontWeight: 'bold',
-                fontSize: '14px'
-              }}
-            >
-              {registeredUser.regno}
-              <button 
-                className="copy-btn02" 
-                onClick={() => handleCopy(registeredUser.regno, "Registration No")}
-                style={{
-                  background: 'rgba(76,175,80,0.2)',
-                  border: '1px solid rgba(76,175,80,0.3)',
-                  borderRadius: '8px',
-                  padding: '5px 10px',
-                  cursor: 'pointer',
-                  color: '#4caf50',
-                  transition: 'all 0.3s ease'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(76,175,80,0.4)'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(76,175,80,0.2)'}
-              >
-                {copiedField === "Registration No" ? <FaCheck /> : <FaCopy />}
-              </button>
-            </div>
-          </div>
-
-          {/* Login ID */}
+        {/* Login ID */}
           <div 
             className="detail-row02"
             style={{
