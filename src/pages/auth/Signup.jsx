@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import toast from "react-hot-toast";
+import { Toaster, toast } from "react-hot-toast";
 import { FaCopy, FaCheck, FaUser, FaEnvelope, FaIdCard } from "react-icons/fa";
 import apiClient from "../../api/apiClient";
 import './auth.css'
@@ -19,7 +19,7 @@ const Signup = () => {
     fName: "",
     mobile: "",
     email: "",
-    password: "",
+    password: "###",
   });
 
   // URL se ref param read karo
@@ -63,10 +63,12 @@ const Signup = () => {
           } else {
             console.log("❌ Sponsor not found");
             setFormData(prev => ({ ...prev, sponsorName: "Invalid Sponsor" }));
+            toast.error("Invalid Sponsor ID!");
           }
         } catch (err) {
           console.error("❌ Sponsor fetch error:", err);
           setFormData(prev => ({ ...prev, sponsorName: "Not Found" }));
+          toast.error("Sponsor ID not found!");
         }
       } else {
         setFormData(prev => ({ ...prev, sponsorName: "" }));
@@ -107,7 +109,7 @@ const Signup = () => {
       return;
     }
     
-    if (!formData.sponsorName || formData.sponsorName === "Invalid Sponsor") {
+    if (!formData.sponsorName || formData.sponsorName === "Invalid Sponsor" || formData.sponsorName === "Not Found") {
       console.log("🔴 4. Invalid Sponsor");
       toast.error("Please enter a valid Sponsor ID!");
       return;
@@ -122,6 +124,12 @@ const Signup = () => {
     if (!formData.email) {
       console.log("🔴 6. Email missing");
       toast.error("Please enter your email!");
+      return;
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast.error("Please enter a valid email address!");
       return;
     }
     
@@ -171,7 +179,7 @@ const Signup = () => {
           password: formData.password,
         });
         setShowSuccessModal(true);
-        toast.success("Registration Successful!");
+        toast.success("✅ Registration Successful!");
         
         // Reset form
         setFormData({
@@ -185,7 +193,7 @@ const Signup = () => {
         });
       } else {
         console.log("❌ 15. Registration Failed:", response.data.message);
-        toast.error(response.data.message || "Registration Failed");
+        toast.error(response.data.message || "❌ Registration Failed");
       }
     } catch (error) {
       console.error("❌ 16. Signup Error:", error);
@@ -193,11 +201,17 @@ const Signup = () => {
       console.error("❌ 18. Error Status:", error.response?.status);
       console.error("❌ 19. Error Data:", error.response?.data);
       
-      const errorMsg = error.response?.data?.message || 
-                       error.response?.data?.title || 
-                       error.message || 
-                       "Server Error";
-      toast.error(errorMsg);
+      if (error.response?.status === 409) {
+        toast.error("⚠️ User already exists! Please try with different mobile number.");
+      } else if (error.response?.status === 400) {
+        toast.error("⚠️ Invalid data! Please check all fields.");
+      } else {
+        const errorMsg = error.response?.data?.message || 
+                         error.response?.data?.title || 
+                         error.message || 
+                         "Server Error";
+        toast.error(`❌ ${errorMsg}`);
+      }
     } finally {
       console.log("🔴 20. Finally block - loading false");
       setLoading(false);
@@ -206,6 +220,54 @@ const Signup = () => {
 
   return (
     <>
+      <Toaster 
+        position="top-right"
+        reverseOrder={false}
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#1e293b',
+            color: '#fff',
+            borderRadius: '12px',
+            padding: '12px 20px',
+            fontSize: '14px',
+            fontWeight: '500',
+            border: '1px solid rgba(255,215,0,0.3)',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+          },
+          success: {
+            duration: 3000,
+            style: {
+              background: 'linear-gradient(135deg, #10b981, #059669)',
+              color: '#fff',
+              border: '1px solid rgba(255,255,255,0.2)',
+            },
+            iconTheme: {
+              primary: '#fff',
+              secondary: '#10b981',
+            },
+          },
+          error: {
+            duration: 4000,
+            style: {
+              background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+              color: '#fff',
+              border: '1px solid rgba(255,255,255,0.2)',
+            },
+            iconTheme: {
+              primary: '#fff',
+              secondary: '#ef4444',
+            },
+          },
+          loading: {
+            style: {
+              background: '#3b82f6',
+              color: '#fff',
+            },
+          },
+        }}
+      />
+      
       <div className="mediic-appoinment">    
         <div className="container">
           <div className="row g-4">
@@ -247,7 +309,7 @@ const Signup = () => {
                             readOnly 
                             placeholder="Sponsor Name" 
                             className="readonly-input" 
-                            style={{ color: "#008202", fontWeight: "600" }} 
+                            style={{ color: formData.sponsorName === "Invalid Sponsor" || formData.sponsorName === "Not Found" ? "#ff4444" : "#008202", fontWeight: "600" }} 
                           />
                         </div>
                       </div>
@@ -318,7 +380,7 @@ const Signup = () => {
                       
                       <div className="col-lg-12">
                         <button type="submit" className="laboix-btn" disabled={loading}>
-                          {loading ? "Creating Account..." : "Signup Now"} 
+                          {loading ? "⏳ Creating Account..." : "🔐 Signup Now"} 
                           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="17" fill="currentColor" className="bi bi-arrow-return-right" viewBox="0 0 16 16"> 
                             <path fillRule="evenodd" d="M1.5 1.5A.5.5 0 0 0 1 2v4.8a2.5 2.5 0 0 0 2.5 2.5h9.793l-3.347 3.346a.5.5 0 0 0 .708.708l4.2-4.2a.5.5 0 0 0 0-.708l-4-4a.5.5 0 0 0-.708.708L13.293 8.3H3.5A1.5 1.5 0 0 1 2 6.8V2a.5.5 0 0 0-.5-.5"/>
                           </svg>
@@ -334,96 +396,435 @@ const Signup = () => {
       </div>
 
       {/* Success Modal */}
-      {showSuccessModal && registeredUser && (
-        <div className="modal-overlay" onClick={handleModalClose}>
-          <div className="success-modal02" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header02">
-              <div className="success-icon02">✓</div>
-              <div className="Registration-text">Registration Successful</div>
-              <button className="modal-close02" onClick={handleModalClose}>×</button>
+  {/* Success Modal */}
+{showSuccessModal && registeredUser && (
+  <div 
+    className="modal-overlay" 
+    onClick={handleModalClose}
+    style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0,0,0,0.85)',
+      backdropFilter: 'blur(8px)',
+      zIndex: 9999,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      animation: 'modalFadeIn 0.3s ease'
+    }}
+  >
+    <div 
+      className="success-modal02" 
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        width: '90%',
+        maxWidth: '500px',
+        background: 'linear-gradient(135deg, #0f2e1a, #1a472a, #0d2818)',
+        borderRadius: '24px',
+        overflow: 'hidden',
+        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5), 0 0 0 1px rgba(76,175,80,0.3)',
+        animation: 'modalPopIn 0.4s cubic-bezier(0.34, 1.2, 0.64, 1)'
+      }}
+    >
+      {/* Modal Header */}
+      <div 
+        className="modal-header02"
+        style={{
+          padding: '20px 24px',
+          background: 'linear-gradient(135deg, #1a472a, #0d2818)',
+          borderBottom: '1px solid rgba(76,175,80,0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          position: 'relative'
+        }}
+      >
+        <div 
+          className="success-icon02"
+          style={{
+            width: '50px',
+            height: '50px',
+            background: 'linear-gradient(135deg, #10b981, #059669)',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '28px',
+            fontWeight: 'bold',
+            color: '#fff',
+            boxShadow: '0 0 20px rgba(16,185,129,0.5)'
+          }}
+        >
+          ✓
+        </div>
+        <div 
+          className="Registration-text"
+          style={{
+            fontSize: '20px',
+            fontWeight: 'bold',
+            color: '#ffd700',
+            flex: 1,
+            marginLeft: '15px'
+          }}
+        >
+          Registration Successful
+        </div>
+        <button 
+          className="modal-close02" 
+          onClick={handleModalClose}
+          style={{
+            background: 'rgba(255,255,255,0.1)',
+            border: '1px solid rgba(255,255,255,0.2)',
+            borderRadius: '50%',
+            width: '32px',
+            height: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            color: '#fff',
+            fontSize: '20px',
+            transition: 'all 0.3s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.2)';
+            e.currentTarget.style.transform = 'rotate(90deg)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+            e.currentTarget.style.transform = 'rotate(0deg)';
+          }}
+        >
+          ×
+        </button>
+      </div>
+      
+      {/* Modal Body */}
+      <div 
+        className="modal-body02"
+        style={{
+          padding: '24px'
+        }}
+      >
+        <div 
+          className="user-details-card02"
+          style={{
+            background: 'rgba(255,255,255,0.05)',
+            borderRadius: '16px',
+            padding: '20px',
+            marginBottom: '20px',
+            border: '1px solid rgba(76,175,80,0.2)'
+          }}
+        >
+          <div 
+            className="Account-text"
+            style={{
+              fontSize: '18px',
+              fontWeight: 'bold',
+              color: '#ffd700',
+              marginBottom: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              borderBottom: '1px solid rgba(255,215,0,0.3)',
+              paddingBottom: '10px'
+            }}
+          >
+            <FaIdCard /> Your Account Details
+          </div>
+
+          {/* Registration No */}
+          <div 
+            className="detail-row02"
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '12px 0',
+              borderBottom: '1px solid rgba(255,255,255,0.1)'
+            }}
+          >
+            <div 
+              className="detail-label02"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                color: 'rgba(255,255,255,0.8)',
+                fontSize: '14px'
+              }}
+            >
+              <FaUser /> Registration No:
             </div>
-            
-            <div className="modal-body02">
-              <div className="user-details-card02">
-                <div className="Account-text"><FaIdCard /> Your Account Details</div>
+            <div 
+              className="detail-value02"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                color: '#4caf50',
+                fontWeight: 'bold',
+                fontSize: '14px'
+              }}
+            >
+              {registeredUser.regno}
+              <button 
+                className="copy-btn02" 
+                onClick={() => handleCopy(registeredUser.regno, "Registration No")}
+                style={{
+                  background: 'rgba(76,175,80,0.2)',
+                  border: '1px solid rgba(76,175,80,0.3)',
+                  borderRadius: '8px',
+                  padding: '5px 10px',
+                  cursor: 'pointer',
+                  color: '#4caf50',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(76,175,80,0.4)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(76,175,80,0.2)'}
+              >
+                {copiedField === "Registration No" ? <FaCheck /> : <FaCopy />}
+              </button>
+            </div>
+          </div>
 
-                <div className="detail-row02">
-                  <div className="detail-label02"><FaUser /> Registration No:</div>
-                  <div className="detail-value02">
-                    {registeredUser.regno}
-                    <button className="copy-btn02" onClick={() => handleCopy(registeredUser.regno, "Registration No")}>
-                      {copiedField === "Registration No" ? <FaCheck /> : <FaCopy />}
-                    </button>
-                  </div>
-                </div>
+          {/* Login ID */}
+          <div 
+            className="detail-row02"
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '12px 0',
+              borderBottom: '1px solid rgba(255,255,255,0.1)'
+            }}
+          >
+            <div className="detail-label02" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'rgba(255,255,255,0.8)', fontSize: '14px' }}>
+              <FaUser /> Login ID:
+            </div>
+            <div className="detail-value02" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#4caf50', fontWeight: 'bold', fontSize: '14px' }}>
+              {registeredUser.loginId}
+              <button 
+                onClick={() => handleCopy(registeredUser.loginId, "Login ID")}
+                style={{
+                  background: 'rgba(76,175,80,0.2)',
+                  border: '1px solid rgba(76,175,80,0.3)',
+                  borderRadius: '8px',
+                  padding: '5px 10px',
+                  cursor: 'pointer',
+                  color: '#4caf50',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(76,175,80,0.4)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(76,175,80,0.2)'}
+              >
+                {copiedField === "Login ID" ? <FaCheck /> : <FaCopy />}
+              </button>
+            </div>
+          </div>
 
-                <div className="detail-row02">
-                  <div className="detail-label02"><FaUser /> Login ID:</div>
-                  <div className="detail-value02">
-                    {registeredUser.loginId}
-                    <button className="copy-btn02" onClick={() => handleCopy(registeredUser.loginId, "Login ID")}>
-                      {copiedField === "Login ID" ? <FaCheck /> : <FaCopy />}
-                    </button>
-                  </div>
-                </div>
+          {/* Password */}
+          <div 
+            className="detail-row02"
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '12px 0',
+              borderBottom: '1px solid rgba(255,255,255,0.1)'
+            }}
+          >
+            <div className="detail-label02" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'rgba(255,255,255,0.8)', fontSize: '14px' }}>
+              <FaUser /> Password:
+            </div>
+            <div className="detail-value02" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#ff9800', fontWeight: 'bold', fontSize: '14px' }}>
+              {registeredUser.password}
+              <button 
+                onClick={() => handleCopy(registeredUser.password, "Password")}
+                style={{
+                  background: 'rgba(76,175,80,0.2)',
+                  border: '1px solid rgba(76,175,80,0.3)',
+                  borderRadius: '8px',
+                  padding: '5px 10px',
+                  cursor: 'pointer',
+                  color: '#4caf50',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(76,175,80,0.4)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(76,175,80,0.2)'}
+              >
+                {copiedField === "Password" ? <FaCheck /> : <FaCopy />}
+              </button>
+            </div>
+          </div>
 
-                <div className="detail-row02">
-                  <div className="detail-label02"><FaUser /> Password:</div>
-                  <div className="detail-value02">
-                    {registeredUser.password}
-                    <button className="copy-btn02" onClick={() => handleCopy(registeredUser.password, "Password")}>
-                      {copiedField === "Password" ? <FaCheck /> : <FaCopy />}
-                    </button>
-                  </div>
-                </div>
+          {/* Name */}
+          <div 
+            className="detail-row02"
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '12px 0',
+              borderBottom: '1px solid rgba(255,255,255,0.1)'
+            }}
+          >
+            <div className="detail-label02" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'rgba(255,255,255,0.8)', fontSize: '14px' }}>
+              <FaUser /> Name:
+            </div>
+            <div className="detail-value02" style={{ color: '#fff', fontSize: '14px' }}>
+              {registeredUser.name}
+            </div>
+          </div>
 
-                <div className="detail-row02">
-                  <div className="detail-label02"><FaUser /> Name:</div>
-                  <div className="detail-value02">{registeredUser.name}</div>
-                </div>
+          {/* Email */}
+          <div 
+            className="detail-row02"
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '12px 0',
+              borderBottom: '1px solid rgba(255,255,255,0.1)'
+            }}
+          >
+            <div className="detail-label02" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'rgba(255,255,255,0.8)', fontSize: '14px' }}>
+              <FaEnvelope /> Email:
+            </div>
+            <div className="detail-value02" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#fff', fontSize: '14px' }}>
+              {registeredUser.email}
+              <button 
+                onClick={() => handleCopy(registeredUser.email, "Email")}
+                style={{
+                  background: 'rgba(76,175,80,0.2)',
+                  border: '1px solid rgba(76,175,80,0.3)',
+                  borderRadius: '8px',
+                  padding: '5px 10px',
+                  cursor: 'pointer',
+                  color: '#4caf50',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(76,175,80,0.4)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(76,175,80,0.2)'}
+              >
+                {copiedField === "Email" ? <FaCheck /> : <FaCopy />}
+              </button>
+            </div>
+          </div>
 
-                <div className="detail-row02">
-                  <div className="detail-label02"><FaEnvelope /> Email:</div>
-                  <div className="detail-value02">
-                    {registeredUser.email}
-                    <button className="copy-btn02" onClick={() => handleCopy(registeredUser.email, "Email")}>
-                      {copiedField === "Email" ? <FaCheck /> : <FaCopy />}
-                    </button>
-                  </div>
-                </div>
+          {/* Mobile */}
+          <div 
+            className="detail-row02"
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '12px 0',
+              borderBottom: '1px solid rgba(255,255,255,0.1)'
+            }}
+          >
+            <div className="detail-label02" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'rgba(255,255,255,0.8)', fontSize: '14px' }}>
+              <FaUser /> Mobile:
+            </div>
+            <div className="detail-value02" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#fff', fontSize: '14px' }}>
+              {registeredUser.mobile}
+              <button 
+                onClick={() => handleCopy(registeredUser.mobile, "Mobile")}
+                style={{
+                  background: 'rgba(76,175,80,0.2)',
+                  border: '1px solid rgba(76,175,80,0.3)',
+                  borderRadius: '8px',
+                  padding: '5px 10px',
+                  cursor: 'pointer',
+                  color: '#4caf50',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(76,175,80,0.4)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(76,175,80,0.2)'}
+              >
+                {copiedField === "Mobile" ? <FaCheck /> : <FaCopy />}
+              </button>
+            </div>
+          </div>
 
-                <div className="detail-row02">
-                  <div className="detail-label02"><FaUser /> Mobile:</div>
-                  <div className="detail-value02">
-                    {registeredUser.mobile}
-                    <button className="copy-btn02" onClick={() => handleCopy(registeredUser.mobile, "Mobile")}>
-                      {copiedField === "Mobile" ? <FaCheck /> : <FaCopy />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="detail-row02">
-                  <div className="detail-label02"><FaUser /> Sponsor ID:</div>
-                  <div className="detail-value02">
-                    {registeredUser.sponsorId}
-                    <button className="copy-btn02" onClick={() => handleCopy(registeredUser.sponsorId, "Sponsor ID")}>
-                      {copiedField === "Sponsor ID" ? <FaCheck /> : <FaCopy />}
-                    </button>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="modal-actions02">
-                <Link to="/login">
-                  <button className="btn-dashboard02" onClick={handleModalClose}>
-                    GO TO LOGIN
-                  </button>  
-                </Link>          
-              </div>  
+          {/* Sponsor ID */}
+          <div 
+            className="detail-row02"
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '12px 0'
+            }}
+          >
+            <div className="detail-label02" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'rgba(255,255,255,0.8)', fontSize: '14px' }}>
+              <FaUser /> Sponsor ID:
+            </div>
+            <div className="detail-value02" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#ffd700', fontWeight: 'bold', fontSize: '14px' }}>
+              {registeredUser.sponsorId}
+              <button 
+                onClick={() => handleCopy(registeredUser.sponsorId, "Sponsor ID")}
+                style={{
+                  background: 'rgba(76,175,80,0.2)',
+                  border: '1px solid rgba(76,175,80,0.3)',
+                  borderRadius: '8px',
+                  padding: '5px 10px',
+                  cursor: 'pointer',
+                  color: '#4caf50',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(76,175,80,0.4)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(76,175,80,0.2)'}
+              >
+                {copiedField === "Sponsor ID" ? <FaCheck /> : <FaCopy />}
+              </button>
             </div>
           </div>
         </div>
-      )}
+        
+        {/* Action Button */}
+        <div 
+          className="modal-actions02"
+          style={{
+            textAlign: 'center'
+          }}
+        >
+          <Link to="/login">
+            <button 
+              className="btn-dashboard02" 
+              onClick={handleModalClose}
+              style={{
+                width: '100%',
+                padding: '14px',
+                background: 'linear-gradient(135deg, #10b981, #059669)',
+                border: 'none',
+                borderRadius: '40px',
+                color: '#fff',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.02)';
+                e.currentTarget.style.boxShadow = '0 5px 20px rgba(16,185,129,0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
+              GO TO LOGIN
+            </button>  
+          </Link>          
+        </div>  
+      </div>
+    </div>
+  </div>
+)}
     </>
   );
 };

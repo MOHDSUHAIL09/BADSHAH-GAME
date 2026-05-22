@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import toast from "react-hot-toast";
+import { Toaster, toast } from "react-hot-toast";
 import apiClient from "../../api/apiClient";
 import { useUser } from "../../context/UserContext";
 import './auth.css';
@@ -27,8 +27,13 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     
+    if (!formData.loginId || !formData.password) {
+      toast.error("⚠️ Please enter Login ID and Password!");
+      return;
+    }
+    
     if (cooldown) {
-      toast.error("Please wait 30 seconds before trying again!");
+      toast.error("⏰ Please wait 30 seconds before trying again!");
       return;
     }
     
@@ -57,24 +62,29 @@ const Login = () => {
         // Update context
         loginUser(userData, token);
         
-        toast.success("Login Successful!");
-        setTimeout(() => navigate("/dashboard"), 500);
+        toast.success("✅ Login Successful!");
+        setTimeout(() => navigate("/dashboard"), 1000);
       } else {
-        toast.error(response.data.message || "Invalid Login Details");
+        toast.error(response.data.message || "❌ Invalid Login Details");
       }
     } catch (error) {
       console.error("Login Error:", error.response);
       
       if (error.response?.status === 429) {
-        toast.error("Too many attempts! Please wait 30 seconds.");
+        toast.error("⏰ Too many attempts! Please wait 30 seconds.");
         setCooldown(true);
-        setTimeout(() => setCooldown(false), 30000);
+        setTimeout(() => {
+          setCooldown(false);
+          toast.success("✅ Cooldown over! You can try again.");
+        }, 30000);
       } else if (error.response?.status === 401) {
-        toast.error("Invalid credentials! Please check your login ID and password.");
+        toast.error("🔐 Invalid credentials! Please check your login ID and password.");
       } else if (error.response?.status === 404) {
-        toast.error("User not found! Please sign up first.");
+        toast.error("❓ User not found! Please sign up first.");
+      } else if (error.response?.status === 400) {
+        toast.error("⚠️ Please fill all fields correctly.");
       } else {
-        const errorMsg = error.response?.data?.message || "Login Failed: Server Error";
+        const errorMsg = error.response?.data?.message || "❌ Login Failed: Server Error";
         toast.error(errorMsg);
       }
     } finally {
@@ -89,6 +99,54 @@ const Login = () => {
 
   return (
     <>
+      <Toaster 
+        position="top-right"
+        reverseOrder={false}
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#1e293b',
+            color: '#fff',
+            borderRadius: '12px',
+            padding: '12px 20px',
+            fontSize: '14px',
+            fontWeight: '500',
+            border: '1px solid rgba(255,215,0,0.3)',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+          },
+          success: {
+            duration: 3000,
+            style: {
+              background: 'linear-gradient(135deg, #10b981, #059669)',
+              color: '#fff',
+              border: '1px solid rgba(255,255,255,0.2)',
+            },
+            iconTheme: {
+              primary: '#fff',
+              secondary: '#10b981',
+            },
+          },
+          error: {
+            duration: 4000,
+            style: {
+              background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+              color: '#fff',
+              border: '1px solid rgba(255,255,255,0.2)',
+            },
+            iconTheme: {
+              primary: '#fff',
+              secondary: '#ef4444',
+            },
+          },
+          loading: {
+            style: {
+              background: '#3b82f6',
+              color: '#fff',
+            },
+          },
+        }}
+      />
+      
       <div className="mediic-appoinment">
         <div className="container">
           <div className="row g-4">
@@ -151,7 +209,7 @@ const Login = () => {
                       <div className="col-lg-12 col-md-6">
                         <div className="submit-button">
                           <button type="submit" className="laboix-btn" disabled={loading || cooldown}>
-                            {loading ? "Logging in..." : cooldown ? "Please wait..." : "Login Now"} 
+                            {loading ? "⏳ Logging in..." : cooldown ? "⏰ Please wait..." : "🔐 Login Now"} 
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="17" fill="currentColor" className="bi bi-arrow-return-right" viewBox="0 0 16 16">
                               <path fillRule="evenodd" d="M1.5 1.5A.5.5 0 0 0 1 2v4.8a2.5 2.5 0 0 0 2.5 2.5h9.793l-3.347 3.346a.5.5 0 0 0 .708.708l4.2-4.2a.5.5 0 0 0 0-.708l-4-4a.5.5 0 0 0-.708.708L13.293 8.3H3.5A1.5 1.5 0 0 1 2 6.8V2a.5.5 0 0 0-.5-.5" />
                             </svg>
