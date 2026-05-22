@@ -140,7 +140,7 @@ const Header = () => {
           top: 0,
           zIndex: 1000,
           transition: 'all 0.3s ease',
-          background: isScrolled ? 'rgba(0,0,0,0.95)' : 'rgba(0,0,0,0.8)',
+          background: isScrolled ,
           backdropFilter: 'blur(10px)',
           borderBottom: '1px solid rgba(255,255,255,0.1)',
         }}
@@ -158,7 +158,7 @@ const Header = () => {
               }}
               onClick={() => handleNavigation('/dashboard', 'Dashboard')}
             >
-              BADSHAH GAME
+              BADSHAH
             </div>
 
             {/* Desktop Navigation */}

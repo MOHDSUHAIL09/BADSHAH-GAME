@@ -21,7 +21,7 @@ const Dashboard = () => {
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [modalData, setModalData] = useState({ isWin: false, amount: 0, icon: null, betAmount: 0 });
+  const [modalData, setModalData] = useState({ isWin: false, amount: 0, icon: null, betAmount: 0, winningNumber: '' });
   const [showLast10Modal, setShowLast10Modal] = useState(false);
   const [last10TimeLeft, setLast10TimeLeft] = useState(10);
   const [timeLeft, setTimeLeft] = useState(60);
@@ -40,6 +40,7 @@ const Dashboard = () => {
   const toastTimeoutRef = useRef(null);
   const gameIdRef = useRef('');
   const apiCallInProgressRef = useRef(false);
+  const last10IntervalRef = useRef(null);
 
   // ==================== GAME ITEMS ====================
   const items = [
@@ -76,6 +77,38 @@ const Dashboard = () => {
     return data ? JSON.parse(data) : null;
   };
 
+  // ==================== LAST 10 SECONDS MODAL ====================
+  const showLast10SecondsModal = () => {
+    if (last10ModalShownRef.current) return;
+    console.log("🔔 LAST 10 SECONDS! Opening modal...");
+    last10ModalShownRef.current = true;
+    setIsBettingLocked(true);
+    setLast10TimeLeft(10);
+    setShowLast10Modal(true);
+
+    // Clear any existing interval
+    if (last10IntervalRef.current) {
+      clearInterval(last10IntervalRef.current);
+    }
+
+    // Countdown timer - 10 se 1 tak
+    last10IntervalRef.current = setInterval(() => {
+      setLast10TimeLeft(prev => {
+        const newTime = prev - 1;
+        console.log("⏰ Modal countdown:", newTime);
+        
+        if (newTime <= 0) {
+          clearInterval(last10IntervalRef.current);
+          last10IntervalRef.current = null;
+          setShowLast10Modal(false);
+          last10ModalShownRef.current = false;
+          return 0;
+        }
+        return newTime;
+      });
+    }, 1000);
+  };
+
   // ==================== HELPERS ====================
   const getAuthToken = () => localStorage.getItem('token') || '';
 
@@ -93,31 +126,6 @@ const Dashboard = () => {
     return `${seconds}`;
   };
 
-  // ==================== LAST 10 SECONDS MODAL ====================
-  const showLast10SecondsModal = () => {
-    if (last10ModalShownRef.current) return;
-    console.log("🔔 LAST 10 SECONDS! Opening modal...");
-    last10ModalShownRef.current = true;
-    setIsBettingLocked(true);
-    setLast10TimeLeft(10);
-    setShowLast10Modal(true);
-
-    const countdownInterval = setInterval(() => {
-      setLast10TimeLeft(prev => {
-        const newTime = prev - 1;
-        console.log("⏰ Modal countdown:", newTime);
-        
-        if (newTime <= 0) {
-          clearInterval(countdownInterval);
-          setShowLast10Modal(false);
-          last10ModalShownRef.current = false;
-          return 0;
-        }
-        return newTime;
-      });
-    }, 1000);
-  };
-
   // ==================== RESET ROUND ====================
   const resetRound = () => {
     console.log("🔄 Resetting round");
@@ -132,6 +140,12 @@ const Dashboard = () => {
     setShowLast10Modal(false);
     setIsRoundActive(true);
     setRoundGameId('');
+    
+    // Clear last10 interval if exists
+    if (last10IntervalRef.current) {
+      clearInterval(last10IntervalRef.current);
+      last10IntervalRef.current = null;
+    }
   };
 
   // ==================== CHECK WINNING RESULT ====================
@@ -150,7 +164,8 @@ const Dashboard = () => {
         
         if (!currentGameId) return null;
 
-        const myGameResult = results.find(r => r.gameid == currentGameId);
+        // ✅ FIX: Convert both to string for comparison
+        const myGameResult = results.find(r => String(r.gameid) === String(currentGameId));
         console.log("📊 Found result:", myGameResult);
         
         if (!myGameResult) return null;
@@ -223,7 +238,12 @@ const Dashboard = () => {
     console.log("🎯 DECLARE RESULT CALLED");
     isResultDeclaredRef.current = true;
     setIsRoundActive(false);
-    if (timerRef.current) clearInterval(timerRef.current);
+    
+    // Clear timer
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
 
     const result = await checkWinningResult();
     if (!result) {
@@ -253,25 +273,30 @@ const Dashboard = () => {
     }
   };
 
-  
   // ==================== TIMER COUNTDOWN ====================
   useEffect(() => {
+    // Clean up existing timer
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    
+    // If timer reached 0
     if (timeLeft <= 0) {
       console.log("🚨 TIMER REACHED 0!");
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
       
       if (!apiCallInProgressRef.current) {
         apiCallInProgressRef.current = true;
         
+        // Declare result first
         declareResult();
         
+        // Then refresh data
         setTimeout(() => {
           forceRefresh();
         }, 500);
         
+        // Reset after some time
         setTimeout(() => {
           apiCallInProgressRef.current = false;
           resetRound();
@@ -279,15 +304,14 @@ const Dashboard = () => {
       }
       return;
     }
-
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
     
+    // Start new timer
+    console.log("⏰ Starting timer with:", timeLeft);
     timerRef.current = setInterval(() => {
       setTimeLeft(prev => {
         const newTime = prev - 1;
         
+        // Check for last 10 seconds
         if (newTime === 10 && !last10ModalShownRef.current && !isResultDeclaredRef.current) {
           showLast10SecondsModal();
         }
@@ -295,9 +319,11 @@ const Dashboard = () => {
         return newTime;
       });
     }, 1000);
-
+    
+    // Cleanup function
     return () => {
       if (timerRef.current) {
+        console.log("🧹 Cleaning up timer");
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
@@ -471,6 +497,7 @@ const Dashboard = () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (modalTimeoutRef.current) clearTimeout(modalTimeoutRef.current);
       if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+      if (last10IntervalRef.current) clearInterval(last10IntervalRef.current);
     };
   }, []);
 
@@ -515,10 +542,10 @@ const Dashboard = () => {
                 </div>
 
                 <div className="d-flex align-items-center gap-3">
-                  <div className="wallet-icon"><i className="bi bi-cash-stack"></i></div>
+                  <div className="wallet-icon"><i className="bi bi-wallet2"></i></div>
                   <div className="wallet-info">
-                    <span style={{ color: "#FFF" }}>TOTAL BET</span>
-                    <h2 className="mb-0" style={{ color: "#ffd700" }}>₹{totalBet.toLocaleString('en-IN')}</h2>
+                    <span style={{ color: "#FFF" }}>BETTING AMOUNT</span>
+                    <h2 className="mb-0" style={{ color: "#ffd700" }}>₹{(userData?.totbettingamt || 0).toLocaleString('en-IN')}</h2>
                   </div>
                 </div>
 

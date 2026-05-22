@@ -12,6 +12,7 @@ export const UserProvider = ({ children }) => {
 
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const fetchIntervalRef = useRef(null);
 
   // ================= LOAD FROM LOCALSTORAGE =================
   useEffect(() => {
@@ -49,6 +50,7 @@ export const UserProvider = ({ children }) => {
       if (res.data.success) {
         const apiData = res.data.data;
         const newUserData = {
+          pid: apiData.pid || user?.pid,
           currentamt: apiData.currentamt || 0,
           currentAmount: apiData.currentAmount,
           gameid: apiData.gameid,
@@ -73,7 +75,7 @@ export const UserProvider = ({ children }) => {
 
   // ================= FORCE REFRESH (Called at last 10 seconds) =================
   const forceRefresh = async () => {
-    console.log("🔄 Force refresh called at last 10 seconds");
+    console.log("🔄 Force refresh called");
     await fetchData();
   };
 
@@ -94,12 +96,25 @@ export const UserProvider = ({ children }) => {
     localStorage.removeItem("token");
     localStorage.removeItem("regno");
     localStorage.removeItem("userData");
+    if (fetchIntervalRef.current) {
+      clearInterval(fetchIntervalRef.current);
+    }
   };
     
   useEffect(() => {
     if (user) {
       fetchData();
+      // Auto refresh every 30 seconds
+      fetchIntervalRef.current = setInterval(() => {
+        fetchData();
+      }, 30000);
     }
+    
+    return () => {
+      if (fetchIntervalRef.current) {
+        clearInterval(fetchIntervalRef.current);
+      }
+    };
   }, [user]);
 
   return (
@@ -109,7 +124,7 @@ export const UserProvider = ({ children }) => {
         userData,
         loading,
         refreshData: fetchData,
-        forceRefresh, // New method for last 10 seconds
+        forceRefresh,
         loginUser,
         logoutUser
       }}
